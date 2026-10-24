@@ -71,11 +71,12 @@ interface SegmentedProps<T extends string | number> {
   options: { value: T; label: string }[]
   onChange: (value: T) => void
   info?: ReactNode
+  title?: string
 }
 
-export function Segmented<T extends string | number>({ label, value, options, onChange, info }: SegmentedProps<T>) {
+export function Segmented<T extends string | number>({ label, value, options, onChange, info, title }: SegmentedProps<T>) {
   return (
-    <div className="field">
+    <div className="field" title={title}>
       <span className="field-label">
         {label}
         {info}
@@ -102,11 +103,13 @@ interface ToggleProps {
   label: ReactNode
   checked: boolean
   onChange: (checked: boolean) => void
+  /** Tooltip explaining the option. */
+  title?: string
 }
 
-export function Toggle({ label, checked, onChange }: ToggleProps) {
+export function Toggle({ label, checked, onChange, title }: ToggleProps) {
   return (
-    <label className="toggle">
+    <label className="toggle" title={title}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>

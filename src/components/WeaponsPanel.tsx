@@ -25,6 +25,15 @@ function bracketLabel(r: WeaponAttackResult): string {
   return r.bracket === 'out' ? 'OUT' : r.bracket.toUpperCase()
 }
 
+function bracketTitle(r: WeaponAttackResult, range: number): string {
+  const { spec } = r
+  const brackets = `Short 1–${spec.short}, medium ${spec.short + 1}–${spec.medium}, long ${spec.medium + 1}–${spec.long}`
+  const min = spec.minRange > 0 ? `; minimum range ${spec.minRange}` : ''
+  if (r.bracket === 'out') return `Out of range at ${range} hexes. ${brackets}${min}`
+  const mod = r.bracket === 'short' ? '+0' : r.bracket === 'medium' ? '+2' : '+4'
+  return `${r.bracket[0].toUpperCase()}${r.bracket.slice(1)} range at ${range} hexes (${mod}). ${brackets}${min}`
+}
+
 function WeaponRow({
   weapon,
   result,
@@ -47,16 +56,28 @@ function WeaponRow({
   return (
     <li className={`weapon ${weapon.fire ? '' : 'weapon-idle'} ${result && !result.allowed && weapon.fire ? 'weapon-blocked' : ''}`}>
       <div className="weapon-main">
-        <input type="checkbox" checked={weapon.fire} onChange={(e) => set({ fire: e.target.checked })} aria-label={`Fire ${spec.name}`} />
-        <button type="button" className="weapon-name" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <input
+          type="checkbox"
+          checked={weapon.fire}
+          onChange={(e) => set({ fire: e.target.checked })}
+          aria-label={`Fire ${spec.name}`}
+          title={weapon.fire ? 'Firing this turn: uncheck to hold fire' : 'Holding fire: check to fire this turn'}
+        />
+        <button
+          type="button"
+          className="weapon-name"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          title={open ? 'Hide modifier breakdown and options' : 'Show modifier breakdown and options'}
+        >
           <Chevron open={open} />
           <strong>{spec.name}</strong>
-          <span className="loc">
+          <span className="loc" title={`${LOCATION_NAMES[weapon.location]}${weapon.rear ? ', rear-mounted' : ''}`}>
             {weapon.location}
             {weapon.rear ? ' (R)' : ''}
           </span>
         </button>
-        <select className="target-select" value={weapon.targetId} onChange={(e) => set({ targetId: e.target.value })} aria-label="Target">
+        <select className="target-select" value={weapon.targetId} onChange={(e) => set({ targetId: e.target.value })} aria-label="Target" title="Target for this weapon">
           {targets.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
@@ -65,7 +86,9 @@ function WeaponRow({
         </select>
         {result && weapon.fire ? (
           <>
-            <span className={`bracket bracket-${result.bracket}`}>{bracketLabel(result)}</span>
+            <span className={`bracket bracket-${result.bracket}`} title={bracketTitle(result, target?.range ?? 0)}>
+              {bracketLabel(result)}
+            </span>
             <TargetNumber result={result} />
             <span className="dmg" title="Expected damage (chance × average damage on hit)">
               {result.expectedDamage.toFixed(1)}
@@ -73,27 +96,45 @@ function WeaponRow({
             </span>
           </>
         ) : (
-          <span className="idle-label">holding fire</span>
+          <span className="idle-label" title="Not fired this turn: no heat, no attack roll">
+            holding fire
+          </span>
         )}
       </div>
       {open && (
         <div className="weapon-detail">
           <div className="weapon-stats">
-            <span>Heat {spec.heat}</span>
-            <span>
+            <span title="Heat generated when fired">Heat {spec.heat}</span>
+            <span title={spec.missiles ? `Damage per missile × missiles per salvo; Cluster Hits Table decides how many hit` : 'Damage per hit'}>
               Dmg {spec.missiles ? `${spec.damage}/msl × ${spec.missiles}` : spec.damage}
             </span>
-            <span>
+            <span title="Range brackets in hexes: short / medium / long (upper limits)">
               Range {spec.minRange > 0 ? `min ${spec.minRange} · ` : ''}
               {spec.short}/{spec.medium}/{spec.long}
             </span>
-            {result && <span>Avg on hit {result.averageDamage.toFixed(1)}</span>}
+            {result && (
+              <span title={spec.missiles ? 'Average damage when the attack hits, using average cluster hits' : 'Damage when the attack hits'}>
+                Avg on hit {result.averageDamage.toFixed(1)}
+              </span>
+            )}
           </div>
           <div className="weapon-options">
-            <Toggle label="Rear-mounted" checked={weapon.rear} onChange={(v) => set({ rear: v })} />
-            {isLrm(spec) && <Toggle label="Indirect fire" checked={weapon.indirect} onChange={(v) => set({ indirect: v, aimedAt: null })} />}
+            <Toggle
+              label="Rear-mounted"
+              title="Marked (R) on the record sheet: fires only into the rear arc"
+              checked={weapon.rear}
+              onChange={(v) => set({ rear: v })}
+            />
+            {isLrm(spec) && (
+              <Toggle
+                label="Indirect fire"
+                title="LRM only: fire without LOS using a friendly spotter. +1, plus spotter movement; +1 more if the spotter attacked"
+                checked={weapon.indirect}
+                onChange={(v) => set({ indirect: v, aimedAt: null })}
+              />
+            )}
             {canAim && (
-              <label className="field inline">
+              <label className="field inline" title="Immobile targets only. –4 to hit (head: +3 instead); a hit lands on the chosen location on 6–8">
                 <span className="field-label">Aimed shot</span>
                 <select value={weapon.aimedAt ?? ''} onChange={(e) => set({ aimedAt: (e.target.value || null) as Location | null })}>
                   <option value="">None</option>
@@ -105,7 +146,7 @@ function WeaponRow({
                 </select>
               </label>
             )}
-            <button type="button" className="small danger" onClick={onRemove}>
+            <button type="button" className="small danger" onClick={onRemove} title="Remove this weapon from the loadout">
               Remove
             </button>
           </div>
@@ -114,7 +155,9 @@ function WeaponRow({
               <Messages result={result} />
               <ModifierList modifiers={result.modifiers} />
               <div className="tn-total">
-                Target Number <strong>{result.targetNumber}</strong>
+                <span title="Sum of all modifiers: roll this or higher on 2D6 to hit">
+                  Target Number <strong>{result.targetNumber}</strong>
+                </span>
                 {weapon.aimedAt && result.allowed && (
                   <span className="muted"> · aimed location hit on 6–8 ({formatPercent(AIMED_SHOT_CHANCE)} of hits)</span>
                 )}
@@ -145,7 +188,7 @@ export function WeaponsPanel(props: Props) {
   return (
     <Panel title="Weapon attacks" className="weapons">
       <div className="add-weapon">
-        <select value={weaponKey} onChange={(e) => setWeaponKey(e.target.value)} aria-label="Weapon">
+        <select value={weaponKey} onChange={(e) => setWeaponKey(e.target.value)} aria-label="Weapon" title="Weapon to mount">
           {(['energy', 'ballistic', 'missile'] as const).map((cat) => (
             <optgroup key={cat} label={cat[0].toUpperCase() + cat.slice(1)}>
               {WEAPONS.filter((w) => w.category === cat).map((w) => (
@@ -156,14 +199,14 @@ export function WeaponsPanel(props: Props) {
             </optgroup>
           ))}
         </select>
-        <select value={location} onChange={(e) => setLocation(e.target.value as Location)} aria-label="Location">
+        <select value={location} onChange={(e) => setLocation(e.target.value as Location)} aria-label="Location" title="Location the weapon is mounted in (sets its firing arcs)">
           {LOCATIONS.map((l) => (
             <option key={l} value={l}>
               {LOCATION_NAMES[l]}
             </option>
           ))}
         </select>
-        <button type="button" onClick={add}>
+        <button type="button" onClick={add} title="Add the weapon to this 'Mech's loadout, aimed at the primary target">
           + Mount weapon
         </button>
       </div>
@@ -196,26 +239,32 @@ export function WeaponsPanel(props: Props) {
       )}
 
       <div className="totals">
-        <span>
+        <span title="Weapons fired this turn">
           Firing <strong>{firing.length}</strong>
         </span>
-        <span>
+        <span title="Heat from weapons fired this turn (movement and engine heat are in the Heat card)">
           Weapon heat <strong>+{totalHeat}</strong>
         </span>
-        <span>
+        <span title="Sum over fired weapons of chance to hit × average damage on hit">
           Expected damage <strong>{totalExpected.toFixed(1)}</strong>
         </span>
       </div>
 
       <div className="spotting">
-        <Toggle label="This 'Mech is spotting for indirect fire (+1 to its own attacks)" checked={props.attackerIsSpotting} onChange={props.onSpottingChange} />
+        <Toggle
+          label="This 'Mech is spotting for indirect fire (+1 to its own attacks)"
+          title="A spotter needs LOS to the target and must not charge or DFA. Its own weapon attacks this turn get +1"
+          checked={props.attackerIsSpotting} onChange={props.onSpottingChange} />
         {anyIndirect && (
           <fieldset className="limb">
             <legend>Spotter for indirect LRM fire</legend>
-            <Segmented label="Spotter movement" value={spotter.movement} options={MOVEMENT_OPTIONS} onChange={(v) => props.onSpotterChange({ ...spotter, movement: v })} />
+            <Segmented
+              label="Spotter movement"
+              title="The spotter's movement modifier is added to indirect attacks"
+              value={spotter.movement} options={MOVEMENT_OPTIONS} onChange={(v) => props.onSpotterChange({ ...spotter, movement: v })} />
             <div className="toggles">
-              <Toggle label="Spotter prone" checked={spotter.prone} onChange={(v) => props.onSpotterChange({ ...spotter, prone: v })} />
-              <Toggle label="Spotter also attacked" checked={spotter.attacked} onChange={(v) => props.onSpotterChange({ ...spotter, attacked: v })} />
+              <Toggle label="Spotter prone" title="Prone spotter adds +2, as for a prone attacker" checked={spotter.prone} onChange={(v) => props.onSpotterChange({ ...spotter, prone: v })} />
+              <Toggle label="Spotter also attacked" title="Spotter made weapon attacks this turn: +1 to the indirect attack" checked={spotter.attacked} onChange={(v) => props.onSpotterChange({ ...spotter, attacked: v })} />
             </div>
           </fieldset>
         )}

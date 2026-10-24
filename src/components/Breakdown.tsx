@@ -20,11 +20,22 @@ export function ModifierList({ modifiers }: { modifiers: Modifier[] }) {
 }
 
 export function TargetNumber({ result }: { result: AttackResult }) {
-  if (!result.allowed) return <span className="tn tn-blocked">—</span>
+  if (!result.allowed)
+    return (
+      <span className="tn tn-blocked" title={`Cannot attack: ${result.reasons.join('; ')}`}>
+        —
+      </span>
+    )
   const tn = result.targetNumber
   const cls = tn > 12 ? 'tn-miss' : tn <= 6 ? 'tn-good' : tn <= 9 ? 'tn-ok' : 'tn-bad'
+  const title =
+    tn <= 2
+      ? `Target Number ${tn}: automatic hit`
+      : tn > 12
+        ? `Target Number ${tn}: above 12, automatic miss`
+        : `Target Number ${tn}: roll ${tn} or higher on 2D6 (${formatPercent(result.probability)} chance to hit)`
   return (
-    <span className={`tn ${cls}`}>
+    <span className={`tn ${cls}`} title={title}>
       <span className="tn-number">{tn <= 2 ? 'AUTO' : tn > 12 ? 'MISS' : `${tn}+`}</span>
       <span className="tn-pct">{formatPercent(result.probability)}</span>
     </span>
