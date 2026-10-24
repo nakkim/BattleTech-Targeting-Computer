@@ -160,3 +160,12 @@ describe('heat', () => {
     expect(p.effects).toContain('+1 to-hit for weapon attacks')
   })
 })
+
+describe('Gauss Rifle', () => {
+  it('has minimum range 2 and 7/15/22 brackets', () => {
+    const t = target({ range: 1 })
+    expect(weaponTn(attacker(), t, 'GAUSS').targetNumber).toBe(4 + 2)
+    expect(weaponTn(attacker(), { ...t, range: 15 }, 'GAUSS').targetNumber).toBe(4 + 2)
+    expect(weaponTn(attacker(), { ...t, range: 23 }, 'GAUSS').allowed).toBe(false)
+  })
+})

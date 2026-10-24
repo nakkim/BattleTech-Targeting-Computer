@@ -13,7 +13,7 @@ export default function App() {
     setLance((l) => ({ ...l, units: l.units.map((u) => (u.id === active.id ? update(u) : u)) }))
 
   const add = () => {
-    const unit = newUnit(`’Mech ${lance.units.length + 1}`)
+    const unit = newUnit(`Highlander HGN-732 #${lance.units.length + 1}`)
     setLance((l) => ({ units: [...l.units, unit], activeUnitId: unit.id }))
   }
 

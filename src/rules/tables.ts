@@ -12,6 +12,8 @@ export const WEAPONS: WeaponSpec[] = [
   { key: 'AC5', name: 'Autocannon/5', category: 'ballistic', heat: 1, damage: 5, minRange: 3, short: 6, medium: 12, long: 18, ammoPerTon: 20 },
   { key: 'AC10', name: 'Autocannon/10', category: 'ballistic', heat: 3, damage: 10, minRange: 0, short: 5, medium: 10, long: 15, ammoPerTon: 10 },
   { key: 'AC20', name: 'Autocannon/20', category: 'ballistic', heat: 7, damage: 20, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 5 },
+  // Not in the box set rulebook; stats from Total Warfare, needed for the HGN-732 Highlander.
+  { key: 'GAUSS', name: 'Gauss Rifle', category: 'ballistic', heat: 1, damage: 15, minRange: 2, short: 7, medium: 15, long: 22, ammoPerTon: 8 },
   { key: 'MG', name: 'Machine Gun', category: 'ballistic', heat: 0, damage: 2, minRange: 0, short: 1, medium: 2, long: 3, ammoPerTon: 200 },
   { key: 'LRM5', name: 'LRM 5', category: 'missile', heat: 2, damage: 1, missiles: 5, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 24 },
   { key: 'LRM10', name: 'LRM 10', category: 'missile', heat: 4, damage: 1, missiles: 10, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 12 },
