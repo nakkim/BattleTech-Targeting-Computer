@@ -68,7 +68,8 @@ export function SelectField<T extends string>({ label, value, options, onChange 
 interface SegmentedProps<T extends string | number> {
   label: string
   value: T
-  options: { value: T; label: string }[]
+  /** `tone` adds a color swatch, e.g. for terrain or firing arcs. */
+  options: { value: T; label: string; tone?: string }[]
   onChange: (value: T) => void
   info?: ReactNode
   title?: string
@@ -88,7 +89,7 @@ export function Segmented<T extends string | number>({ label, value, options, on
             type="button"
             role="radio"
             aria-checked={o.value === value}
-            className={o.value === value ? 'active' : ''}
+            className={`${o.value === value ? 'active' : ''} ${o.tone ? `toned tone-${o.tone}` : ''}`}
             onClick={() => onChange(o.value)}
           >
             {o.label}

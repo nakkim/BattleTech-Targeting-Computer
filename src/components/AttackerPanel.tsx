@@ -1,5 +1,6 @@
 import { MOVEMENT_NAMES } from '../rules/tables'
 import type { ArmState, Attacker, LegState, MovementMode } from '../rules/types'
+import { WATER_OPTIONS } from './options'
 import { CollapsiblePanel, NumberField, Panel, Segmented, Toggle } from './fields'
 
 interface Props {
@@ -124,11 +125,7 @@ export function AttackerPanel({ attacker, onChange }: Props) {
       <Segmented
         label="Water"
         value={attacker.waterDepth}
-        options={[
-          { value: 0, label: 'None' },
-          { value: 1, label: 'Depth 1' },
-          { value: 2, label: 'Depth 2+' },
-        ]}
+        options={WATER_OPTIONS}
         onChange={(v) => set({ waterDepth: v })}
       />
       {attacker.waterDepth > 0 && (
