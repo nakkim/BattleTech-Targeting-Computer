@@ -70,6 +70,8 @@ export interface Attacker {
   submergedHeatSinks: number
   engineHits: number
   hasClub: boolean
+  /** Locations destroyed or blown off. Head or center torso destroys the 'Mech. */
+  destroyedLocations: Location[]
 }
 
 export interface Target {

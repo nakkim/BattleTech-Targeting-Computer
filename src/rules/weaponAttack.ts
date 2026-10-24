@@ -1,3 +1,4 @@
+import { destroyedReason, isLocationDestroyed } from './destruction'
 import { chanceToHit } from './dice'
 import {
   ATTACKER_MOVEMENT_MODIFIER,
@@ -157,7 +158,11 @@ export function resolveWeaponAttack(weapon: MountedWeapon, ctx: WeaponAttackCont
   const aimed = weapon.aimedAt
 
   // Ability to fire at all.
+  const lost = destroyedReason(attacker, weapon.location)
+  if (lost) reasons.push(`${lost}: weapon cannot fire`)
   if (attacker.sensorHits >= 2) reasons.push('Two sensor hits: cannot fire weapons')
+  if (attacker.prone && (isLocationDestroyed(attacker, 'LA') || isLocationDestroyed(attacker, 'RA')))
+    reasons.push('Prone with a destroyed arm: no weapons can fire')
   if (attacker.prone) {
     if (isLeg(weapon.location)) reasons.push('Prone: leg-mounted weapons cannot fire')
     if (weapon.location === attacker.proneBracingArm) reasons.push('Prone: this arm supports the ’Mech and cannot fire')

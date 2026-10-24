@@ -1,7 +1,7 @@
 import { projectHeat } from '../rules/heat'
 import type { HitTable } from '../rules/tables'
 import type { Attacker, MountedWeapon, Spotter, Target } from '../rules/types'
-import { defaultSpotter, newId } from './defaults'
+import { defaultAttacker, defaultSpotter, newId } from './defaults'
 import { highlanderAttacker, highlanderWeapons, hunchbackTarget, locustTarget } from './presets'
 
 /** Everything the targeting computer tracks for one 'Mech of the lance. */
@@ -35,6 +35,14 @@ export function newUnit(name?: string): UnitState {
     selectedTargetId: target.id,
     physicalTargetId: target.id,
     hatchetTable: 'standard',
+  }
+}
+
+/** Fill in attacker fields added after a lance was saved, so old saves keep working. */
+export function normalizeLance(lance: LanceState): LanceState {
+  return {
+    ...lance,
+    units: lance.units.map((u) => ({ ...u, attacker: { ...defaultAttacker(), ...u.attacker } })),
   }
 }
 

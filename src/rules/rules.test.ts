@@ -169,3 +169,29 @@ describe('Gauss Rifle', () => {
     expect(weaponTn(attacker(), { ...t, range: 23 }, 'GAUSS').allowed).toBe(false)
   })
 })
+
+describe('destroyed locations', () => {
+  const t = target({ range: 3, arc: 'front' })
+  it('blocks weapons in a destroyed arm', () => {
+    expect(weaponTn(attacker({ destroyedLocations: ['LA'] }), t, 'ML', 'LA').allowed).toBe(false)
+    expect(weaponTn(attacker({ destroyedLocations: ['LA'] }), t, 'ML', 'RA').allowed).toBe(true)
+  })
+  it('loses the arm with its side torso', () => {
+    expect(weaponTn(attacker({ destroyedLocations: ['RT'] }), t, 'ML', 'RA').allowed).toBe(false)
+    expect(weaponTn(attacker({ destroyedLocations: ['RT'] }), t, 'ML', 'LA').allowed).toBe(true)
+  })
+  it('center torso destroys the whole Mech', () => {
+    expect(weaponTn(attacker({ destroyedLocations: ['CT'] }), t, 'ML', 'LA').allowed).toBe(false)
+  })
+  it('prone with a destroyed arm cannot fire anything', () => {
+    expect(weaponTn(attacker({ prone: true, proneBracingArm: 'LA', destroyedLocations: ['LA'] }), t, 'ML', 'RT').allowed).toBe(false)
+  })
+  it('destroyed weapons make no heat and do not block punches', () => {
+    const a = attacker({ destroyedLocations: ['LA'], heatSinks: 0 })
+    expect(projectHeat(a, [newWeapon('ML', 'LA', 'x')]).generated).toBe(0)
+    const punchLeft = resolvePhysicalAttack('punchLA', { attacker: a, target: target({ range: 1 }), firedLocations: new Set(), hatchetTable: 'standard' })
+    expect(punchLeft.allowed).toBe(false)
+    const punchRight = resolvePhysicalAttack('punchRA', { attacker: a, target: target({ range: 1 }), firedLocations: new Set(), hatchetTable: 'standard' })
+    expect(punchRight.allowed).toBe(true)
+  })
+})

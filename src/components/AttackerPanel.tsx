@@ -1,5 +1,6 @@
-import { MOVEMENT_NAMES } from '../rules/tables'
-import type { ArmState, Attacker, LegState, MovementMode } from '../rules/types'
+import { isLocationDestroyed, isMechDestroyed } from '../rules/destruction'
+import { LOCATION_NAMES, MOVEMENT_NAMES } from '../rules/tables'
+import type { ArmState, Attacker, LegState, Location, MovementMode } from '../rules/types'
 import { WATER_OPTIONS } from './options'
 import { CollapsiblePanel, NumberField, Panel, Segmented, Toggle } from './fields'
 
@@ -84,11 +85,61 @@ function LegDamage({ title, leg, onChange }: { title: string; leg: LegState; onC
   )
 }
 
+/** Rows laid out like the record sheet's armor diagram (left side on the left). */
+const LOCATION_GRID: (Location | null)[][] = [
+  [null, null, 'HD', null, null],
+  ['LA', 'LT', 'CT', 'RT', 'RA'],
+  [null, 'LL', null, 'RL', null],
+]
+
+function DestroyedLocations({ attacker, onChange }: { attacker: Attacker; onChange: (locations: Location[]) => void }) {
+  const lost = attacker.destroyedLocations
+  const toggle = (loc: Location) => onChange(lost.includes(loc) ? lost.filter((l) => l !== loc) : [...lost, loc])
+  return (
+    <fieldset className="limb destroyed-locations">
+      <legend>Destroyed locations</legend>
+      <div className="location-grid">
+        {LOCATION_GRID.flat().map((loc, i) => {
+          if (!loc) return <span key={i} />
+          const direct = lost.includes(loc)
+          const implied = !direct && isLocationDestroyed(attacker, loc)
+          return (
+            <button
+              key={loc}
+              type="button"
+              aria-pressed={direct}
+              className={`location-toggle ${direct ? 'destroyed' : ''} ${implied ? 'implied' : ''}`}
+              onClick={() => toggle(loc)}
+              title={
+                direct
+                  ? `${LOCATION_NAMES[loc]} destroyed: click to restore`
+                  : implied
+                    ? `${LOCATION_NAMES[loc]} is lost with another location`
+                    : `Mark ${LOCATION_NAMES[loc].toLowerCase()} destroyed${loc === 'HD' || loc === 'CT' ? ' (destroys the \u2019Mech)' : loc === 'LT' || loc === 'RT' ? ' (also blows off the arm)' : ''}`
+              }
+            >
+              {loc}
+            </button>
+          )
+        })}
+      </div>
+      <span className="field-hint">Laid out as on the record sheet. Weapons in destroyed locations cannot fire. A side torso takes its arm with it.</span>
+    </fieldset>
+  )
+}
+
 /** Values that change from turn to turn: movement, heat, position and damage. */
 export function AttackerPanel({ attacker, onChange }: Props) {
   const set = (patch: Partial<Attacker>) => onChange({ ...attacker, ...patch })
   return (
     <Panel title="This turn" className="attacker">
+      {isMechDestroyed(attacker) && (
+        <ul className="messages">
+          <li className="msg-error">
+            {attacker.destroyedLocations.includes('HD') ? 'Head' : 'Center torso'} destroyed: {attacker.name || 'this \u2019Mech'} is out of action.
+          </li>
+        </ul>
+      )}
       <Segmented label="Movement" value={attacker.movement} options={MOVEMENT_OPTIONS} onChange={(v) => set({ movement: v })} />
       <div className="grid-3">
         <NumberField
@@ -138,7 +189,15 @@ export function AttackerPanel({ attacker, onChange }: Props) {
         />
       )}
       <details className="damage">
-        <summary>Critical damage</summary>
+        <summary>
+          Critical damage
+          {attacker.destroyedLocations.length > 0 && (
+            <span className="summary-badge">
+              {isMechDestroyed(attacker) ? '\u2019Mech destroyed' : `${attacker.destroyedLocations.length} destroyed`}
+            </span>
+          )}
+        </summary>
+        <DestroyedLocations attacker={attacker} onChange={(destroyedLocations) => set({ destroyedLocations })} />
         <div className="limbs">
           <ArmDamage title="Left arm" arm={attacker.leftArm} onChange={(leftArm) => set({ leftArm })} />
           <ArmDamage title="Right arm" arm={attacker.rightArm} onChange={(rightArm) => set({ rightArm })} />

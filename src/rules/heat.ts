@@ -1,3 +1,4 @@
+import { firingWeapons } from './destruction'
 import { ammoExplosionAvoid, heatMovementPenalty, heatToHitModifier, shutdownAvoid, WEAPONS_BY_KEY } from './tables'
 import type { Attacker, MountedWeapon } from './types'
 
@@ -46,8 +47,7 @@ export function projectHeat(attacker: Attacker, weapons: MountedWeapon[]): HeatP
   const lines: HeatLine[] = []
   const move = movementHeat(attacker)
   if (move > 0) lines.push({ label: `Movement (${attacker.movement})`, value: move })
-  for (const w of weapons) {
-    if (!w.fire) continue
+  for (const w of firingWeapons(attacker, weapons)) {
     const spec = WEAPONS_BY_KEY[w.weaponKey]
     if (spec.heat > 0) lines.push({ label: `${spec.name} [${w.location}${w.rear ? ' R' : ''}]`, value: spec.heat })
   }

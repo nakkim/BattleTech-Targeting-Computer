@@ -1,3 +1,4 @@
+import { destroyedReason, isLocationDestroyed, isMechDestroyed } from './destruction'
 import { chanceToHit } from './dice'
 import { fivePointGroups, type HitTable } from './tables'
 import type { ArmState, Attacker, AttackResult, LegState, Location, Modifier, Target } from './types'
@@ -143,7 +144,10 @@ export function resolvePhysicalAttack(type: PhysicalAttackType, ctx: PhysicalAtt
   let damage = 0
   let attackerDamage = 0
 
+  if (isMechDestroyed(attacker)) reasons.push('’Mech destroyed')
   if (attacker.prone) reasons.push('Prone ’Mechs cannot make physical attacks')
+  const armsLost = (['LA', 'RA'] as const).filter((loc) => isLocationDestroyed(attacker, loc))
+  const legsLost = (['LL', 'RL'] as const).filter((loc) => isLocationDestroyed(attacker, loc))
   if (target.range !== 1) reasons.push('Target must be in an adjacent hex')
 
   // Level and prone target restrictions.
@@ -182,6 +186,8 @@ export function resolvePhysicalAttack(type: PhysicalAttackType, ctx: PhysicalAtt
     case 'punch': {
       const loc = type === 'punchLA' ? 'LA' : 'RA'
       const arm = armOf(attacker, loc)
+      const lost = destroyedReason(attacker, loc)
+      if (lost && !isMechDestroyed(attacker)) reasons.push(lost)
       if (arm.shoulderHit) reasons.push('Shoulder actuator hit')
       if (arm.hasHatchet) reasons.push('Arm carries a hatchet')
       if (firedLocations.has(loc)) reasons.push('Weapons in this arm fired this turn')
@@ -203,6 +209,7 @@ export function resolvePhysicalAttack(type: PhysicalAttackType, ctx: PhysicalAtt
     case 'kick': {
       const loc = type === 'kickLL' ? 'LL' : 'RL'
       const leg = legOf(attacker, loc)
+      if (legsLost.length > 0 && !isMechDestroyed(attacker)) reasons.push('A leg is destroyed: no kicking attacks')
       if (attacker.leftLeg.hipHit || attacker.rightLeg.hipHit) reasons.push('Hip actuator hit: no kicking attacks')
       if (firedLocations.has(loc)) reasons.push('Weapons in this leg fired this turn')
       if (target.legArc !== 'front') reasons.push('Target not in forward arc of the feet')
@@ -223,6 +230,8 @@ export function resolvePhysicalAttack(type: PhysicalAttackType, ctx: PhysicalAtt
     case 'hatchet': {
       const loc = type === 'hatchetLA' ? 'LA' : 'RA'
       const arm = armOf(attacker, loc)
+      const lost = destroyedReason(attacker, loc)
+      if (lost && !isMechDestroyed(attacker)) reasons.push(lost)
       if (!arm.hasHatchet) reasons.push('No hatchet in this arm')
       if (arm.shoulderHit) reasons.push('Shoulder actuator hit')
       if (arm.handHit) reasons.push('Hand actuator hit')
@@ -234,6 +243,7 @@ export function resolvePhysicalAttack(type: PhysicalAttackType, ctx: PhysicalAtt
       break
     }
     case 'club': {
+      if (armsLost.length > 0 && !isMechDestroyed(attacker)) reasons.push('Needs both arms')
       if (!attacker.hasClub) reasons.push('No club in hand')
       if (firedArm) reasons.push('Arm-mounted weapons fired this turn')
       if (attacker.leftArm.shoulderHit || attacker.rightArm.shoulderHit) reasons.push('Shoulder actuator hit')
@@ -248,6 +258,7 @@ export function resolvePhysicalAttack(type: PhysicalAttackType, ctx: PhysicalAtt
       break
     }
     case 'push': {
+      if (armsLost.length > 0 && !isMechDestroyed(attacker)) reasons.push('Push uses both arms')
       if (firedArm) reasons.push('Arm-mounted weapons fired this turn')
       if (target.prone) reasons.push('Target must be standing')
       if (target.levelDifference !== 0) reasons.push('Target must be at the same level')

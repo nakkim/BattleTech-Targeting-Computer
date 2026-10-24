@@ -39,6 +39,7 @@ export const defaultAttacker = (): Attacker => ({
   submergedHeatSinks: 0,
   engineHits: 0,
   hasClub: false,
+  destroyedLocations: [],
 })
 
 let counter = 0

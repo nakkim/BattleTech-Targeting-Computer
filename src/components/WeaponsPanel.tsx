@@ -1,13 +1,15 @@
 import { useState } from 'react'
+import { destroyedReason, firingWeapons } from '../rules/destruction'
 import { AIMED_SHOT_CHANCE, type WeaponAttackResult } from '../rules/weaponAttack'
 import { formatPercent } from '../rules/dice'
 import { isLrm, LOCATION_NAMES, LOCATIONS, MOVEMENT_NAMES, WEAPONS, WEAPONS_BY_KEY } from '../rules/tables'
-import type { Location, MountedWeapon, MovementMode, Spotter, Target } from '../rules/types'
+import type { Attacker, Location, MountedWeapon, MovementMode, Spotter, Target } from '../rules/types'
 import { newWeapon } from '../state/defaults'
 import { Messages, ModifierList, TargetNumber } from './Breakdown'
 import { Chevron, Panel, Segmented, Toggle } from './fields'
 
 interface Props {
+  attacker: Attacker
   weapons: MountedWeapon[]
   results: Map<string, WeaponAttackResult>
   targets: Target[]
@@ -38,9 +40,12 @@ function WeaponRow({
   weapon,
   result,
   targets,
+  destroyed,
   onChange,
   onRemove,
 }: {
+  /** Why the weapon's location is gone, or null when intact. */
+  destroyed: string | null
   weapon: MountedWeapon
   result: WeaponAttackResult | undefined
   targets: Target[]
@@ -54,14 +59,15 @@ function WeaponRow({
   const canAim = target?.immobile && spec.category !== 'missile'
 
   return (
-    <li className={`weapon ${weapon.fire ? '' : 'weapon-idle'} ${result && !result.allowed && weapon.fire ? 'weapon-blocked' : ''}`}>
+    <li className={`weapon ${weapon.fire && !destroyed ? '' : 'weapon-idle'} ${destroyed ? 'weapon-destroyed' : ''} ${result && !result.allowed && weapon.fire && !destroyed ? 'weapon-blocked' : ''}`}>
       <div className="weapon-main">
         <input
           type="checkbox"
-          checked={weapon.fire}
+          checked={weapon.fire && !destroyed}
+          disabled={!!destroyed}
           onChange={(e) => set({ fire: e.target.checked })}
           aria-label={`Fire ${spec.name}`}
-          title={weapon.fire ? 'Firing this turn: uncheck to hold fire' : 'Holding fire: check to fire this turn'}
+          title={destroyed ? `${destroyed}: weapon cannot fire` : weapon.fire ? 'Firing this turn: uncheck to hold fire' : 'Holding fire: check to fire this turn'}
         />
         <button
           type="button"
@@ -84,7 +90,11 @@ function WeaponRow({
             </option>
           ))}
         </select>
-        {result && weapon.fire ? (
+        {destroyed ? (
+          <span className="idle-label destroyed-label" title="Restore the location under This turn → Critical damage">
+            {destroyed}
+          </span>
+        ) : result && weapon.fire ? (
           <>
             <span className={`bracket bracket-${result.bracket}`} title={bracketTitle(result, target?.range ?? 0)}>
               {bracketLabel(result)}
@@ -180,7 +190,7 @@ export function WeaponsPanel(props: Props) {
     onChange([...weapons, newWeapon(weaponKey, location, primary.id)])
   }
 
-  const firing = weapons.filter((w) => w.fire)
+  const firing = firingWeapons(props.attacker, weapons)
   const totalExpected = firing.reduce((s, w) => s + (results.get(w.id)?.expectedDamage ?? 0), 0)
   const totalHeat = firing.reduce((s, w) => s + WEAPONS_BY_KEY[w.weaponKey].heat, 0)
   const anyIndirect = firing.some((w) => w.indirect)
@@ -231,6 +241,7 @@ export function WeaponsPanel(props: Props) {
               weapon={w}
               result={results.get(w.id)}
               targets={targets}
+              destroyed={destroyedReason(props.attacker, w.location)}
               onChange={(nw) => onChange(weapons.map((x) => (x.id === nw.id ? nw : x)))}
               onRemove={() => onChange(weapons.filter((x) => x.id !== w.id))}
             />

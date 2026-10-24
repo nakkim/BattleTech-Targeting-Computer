@@ -1624,3 +1624,58 @@ table.cluster tbody th {
 .tone-rear {
   --tone: var(--tone-rear);
 }
+/* Destroyed locations */
+.destroyed-locations {
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.location-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 52px));
+  gap: 4px;
+  justify-content: center;
+}
+.location-toggle {
+  padding: 5px 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.location-toggle:hover {
+  border-color: var(--red);
+  background: var(--red-dim);
+  color: var(--red);
+}
+.location-toggle.destroyed {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+  text-decoration: line-through;
+}
+.location-toggle.implied {
+  border-style: dashed;
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-dim);
+  text-decoration: line-through;
+}
+.summary-badge {
+  margin-left: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--red-dim);
+  color: var(--red);
+}
+.weapon-destroyed .weapon-name strong {
+  text-decoration: line-through;
+}
+.weapon-main .destroyed-label {
+  color: var(--red);
+}
+.lance-tab-destroyed .lance-tab-name {
+  text-decoration: line-through;
+}

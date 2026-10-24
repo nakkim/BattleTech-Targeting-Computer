@@ -1,3 +1,4 @@
+import { firingWeapons, isMechDestroyed } from '../rules/destruction'
 import { projectHeat } from '../rules/heat'
 import type { UnitState } from '../state/unit'
 
@@ -16,13 +17,15 @@ export function LanceTabs({ units, activeId, onSelect, onAdd, onDuplicate, onRem
       <div className="lance-tablist" role="tablist">
         {units.map((u) => {
           const heat = projectHeat(u.attacker, u.weapons).next
-          const firing = u.weapons.filter((w) => w.fire).length
+          const firing = firingWeapons(u.attacker, u.weapons).length
+          const destroyed = isMechDestroyed(u.attacker)
           const active = u.id === activeId
           return (
-            <div key={u.id} className={`lance-tab ${active ? 'active' : ''}`}>
+            <div key={u.id} className={`lance-tab ${active ? 'active' : ''} ${destroyed ? 'lance-tab-destroyed' : ''}`}>
               <button type="button" role="tab" aria-selected={active} className="lance-tab-main" onClick={() => onSelect(u.id)}>
                 <span className="lance-tab-name">{u.attacker.name || 'Unnamed'}</span>
                 <span className="lance-tab-meta">
+                  {destroyed && <span className="hot">DESTROYED</span>}
                   <span title="Weapons firing">{firing} wpn</span>
                   <span className={heat >= 8 ? 'hot' : ''} title="Heat now → after Heat Phase">
                     H {u.attacker.heat}→{heat}

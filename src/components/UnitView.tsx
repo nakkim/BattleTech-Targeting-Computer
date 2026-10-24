@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { projectHeat } from '../rules/heat'
 import { PHYSICAL_ATTACK_TYPES, resolvePhysicalAttack } from '../rules/physicalAttack'
 import type { Location, Target } from '../rules/types'
+import { firingWeapons } from '../rules/destruction'
 import { checkTargets, resolveWeaponAttack, type WeaponAttackResult } from '../rules/weaponAttack'
 import type { UnitState } from '../state/unit'
 import { AttackerPanel, MechDataPanel } from './AttackerPanel'
@@ -33,12 +34,12 @@ export function UnitView({ unit, onChange }: Props) {
   }, [weapons, targets, attacker, spotter, unit.attackerIsSpotting])
 
   const targetWarnings = useMemo(() => {
-    const used = new Set(weapons.filter((w) => w.fire).map((w) => w.targetId))
+    const used = new Set(firingWeapons(attacker, weapons).map((w) => w.targetId))
     return checkTargets(targets, used).warnings
-  }, [weapons, targets])
+  }, [attacker, weapons, targets])
 
   const physicalResults = useMemo(() => {
-    const firedLocations = new Set<Location>(weapons.filter((w) => w.fire).map((w) => w.location))
+    const firedLocations = new Set<Location>(firingWeapons(attacker, weapons).map((w) => w.location))
     return PHYSICAL_ATTACK_TYPES.map((type) =>
       resolvePhysicalAttack(type, { attacker, target: physicalTarget, firedLocations, hatchetTable: unit.hatchetTable }),
     )
@@ -76,6 +77,7 @@ export function UnitView({ unit, onChange }: Props) {
       </div>
       <div className="col col-results">
         <WeaponsPanel
+          attacker={attacker}
           weapons={weapons}
           results={weaponResults}
           targets={targets}

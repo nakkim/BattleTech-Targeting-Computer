@@ -1,20 +1,23 @@
+import { useMemo } from 'react'
 import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
 import { newId } from './state/defaults'
-import { advanceTurn, initialLance, newUnit, type LanceState, type UnitState } from './state/unit'
+import { advanceTurn, initialLance, newUnit, normalizeLance, type LanceState, type UnitState } from './state/unit'
 import { usePersistentState } from './state/usePersistentState'
 import './App.css'
 
 export default function App() {
-  const [lance, setLance] = usePersistentState<LanceState>('btc-lance-v1', initialLance)
+  const [storedLance, setLance] = usePersistentState<LanceState>('btc-lance-v1', initialLance)
+  const lance = useMemo(() => normalizeLance(storedLance), [storedLance])
+  const updateLance = (update: (lance: LanceState) => LanceState) => setLance((l) => update(normalizeLance(l)))
   const active = lance.units.find((u) => u.id === lance.activeUnitId) ?? lance.units[0]
 
   const updateActive = (update: (unit: UnitState) => UnitState) =>
-    setLance((l) => ({ ...l, units: l.units.map((u) => (u.id === active.id ? update(u) : u)) }))
+    updateLance((l) => ({ ...l, units: l.units.map((u) => (u.id === active.id ? update(u) : u)) }))
 
   const add = () => {
     const unit = newUnit(`Highlander HGN-732 #${lance.units.length + 1}`)
-    setLance((l) => ({ units: [...l.units, unit], activeUnitId: unit.id }))
+    updateLance((l) => ({ units: [...l.units, unit], activeUnitId: unit.id }))
   }
 
   const duplicate = () => {
@@ -23,7 +26,7 @@ export default function App() {
       id: newId('u'),
       attacker: { ...structuredClone(active.attacker), name: `${active.attacker.name} (copy)` },
     }
-    setLance((l) => {
+    updateLance((l) => {
       const index = l.units.findIndex((u) => u.id === active.id)
       const units = [...l.units]
       units.splice(index + 1, 0, copy)
@@ -32,7 +35,7 @@ export default function App() {
   }
 
   const remove = (id: string) =>
-    setLance((l) => {
+    updateLance((l) => {
       const index = l.units.findIndex((u) => u.id === id)
       const units = l.units.filter((u) => u.id !== id)
       const activeUnitId = l.activeUnitId === id ? units[Math.max(0, index - 1)].id : l.activeUnitId
@@ -43,7 +46,7 @@ export default function App() {
     if (confirm('Reset the whole lance to defaults?')) setLance(initialLance())
   }
 
-  const newTurn = () => setLance((l) => ({ ...l, units: l.units.map(advanceTurn) }))
+  const newTurn = () => updateLance((l) => ({ ...l, units: l.units.map(advanceTurn) }))
 
   return (
     <div className="app">
@@ -68,7 +71,7 @@ export default function App() {
       <LanceTabs
         units={lance.units}
         activeId={active.id}
-        onSelect={(id) => setLance((l) => ({ ...l, activeUnitId: id }))}
+        onSelect={(id) => updateLance((l) => ({ ...l, activeUnitId: id }))}
         onAdd={add}
         onDuplicate={duplicate}
         onRemove={remove}
