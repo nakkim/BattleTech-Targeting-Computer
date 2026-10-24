@@ -64,7 +64,8 @@ export function UnitView({ unit, onChange }: Props) {
         <TargetsPanel
           targets={targets}
           selectedId={selectedTarget.id}
-          torsoTwisted={attacker.torsoTwisted}
+          attacker={attacker}
+          weapons={weapons}
           onSelect={(id) => set({ selectedTargetId: id })}
           onChange={updateTargets}
         />

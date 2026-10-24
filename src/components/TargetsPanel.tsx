@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import { ARC_NAMES, targetMovementModifier } from '../rules/tables'
-import type { Arc, Target, Terrain } from '../rules/types'
+import type { Arc, Attacker, MountedWeapon, Target, Terrain } from '../rules/types'
 import { woodsModifier } from '../rules/weaponAttack'
 import { defaultTarget } from '../state/defaults'
+import { ArcDiagram } from './diagrams/ArcDiagram'
+import { RangeDiagram } from './diagrams/RangeDiagram'
+import { InfoButton } from './InfoDialog'
 import { CollapsiblePanel, NumberField, Panel, Segmented, Toggle } from './fields'
 
 interface Props {
   targets: Target[]
   selectedId: string
-  torsoTwisted: boolean
+  attacker: Attacker
+  weapons: MountedWeapon[]
   onSelect: (id: string) => void
   onChange: (targets: Target[]) => void
 }
@@ -20,7 +24,8 @@ const TERRAIN_OPTIONS: { value: Terrain; label: string }[] = [
   { value: 'heavy', label: 'Heavy woods' },
 ]
 
-export function TargetsPanel({ targets, selectedId, torsoTwisted, onSelect, onChange }: Props) {
+export function TargetsPanel({ targets, selectedId, attacker, weapons, onSelect, onChange }: Props) {
+  const torsoTwisted = attacker.torsoTwisted
   const target = targets.find((t) => t.id === selectedId) ?? targets[0]
   const update = (patch: Partial<Target>) => onChange(targets.map((t) => (t.id === target.id ? { ...t, ...patch } : t)))
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -117,7 +122,18 @@ export function TargetsPanel({ targets, selectedId, torsoTwisted, onSelect, onCh
       </div>
 
       <div className="grid-3">
-        <NumberField label="Range (hexes)" value={target.range} onChange={(v) => update({ range: v })} min={1} max={40} />
+        <NumberField
+          label="Range (hexes)"
+          value={target.range}
+          onChange={(v) => update({ range: v })}
+          min={1}
+          max={40}
+          info={
+            <InfoButton title="Range brackets">
+              <RangeDiagram gunnery={attacker.gunnery} target={target} weapons={weapons} />
+            </InfoButton>
+          }
+        />
         <NumberField label="Hexes moved" value={target.hexesMoved} onChange={(v) => update({ hexesMoved: v })} max={40} hint={`TMM +${tmm}`} />
         <NumberField
           label="Level difference"
@@ -155,7 +171,17 @@ export function TargetsPanel({ targets, selectedId, torsoTwisted, onSelect, onCh
         onChange={(v) => update({ waterDepth: v })}
       />
 
-      <Segmented label={torsoTwisted ? 'Target in attacker arc (torso)' : 'Target in attacker arc'} value={target.arc} options={ARC_OPTIONS} onChange={(v) => update({ arc: v, legArc: torsoTwisted ? target.legArc : v })} />
+      <Segmented
+        label={torsoTwisted ? 'Target in attacker arc (torso)' : 'Target in attacker arc'}
+        value={target.arc}
+        options={ARC_OPTIONS}
+        onChange={(v) => update({ arc: v, legArc: torsoTwisted ? target.legArc : v })}
+        info={
+          <InfoButton title="Firing arcs">
+            <ArcDiagram attacker={attacker} target={target} weapons={weapons} />
+          </InfoButton>
+        }
+      />
       {torsoTwisted && <Segmented label="Target in attacker arc (legs / feet)" value={target.legArc} options={ARC_OPTIONS} onChange={(v) => update({ legArc: v })} />}
       <Segmented label="Attack strikes target's" value={target.attackDirection} options={ARC_OPTIONS} onChange={(v) => update({ attackDirection: v })} />
     </Panel>

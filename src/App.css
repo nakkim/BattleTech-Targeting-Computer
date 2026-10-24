@@ -1014,3 +1014,205 @@ table.cluster tbody th {
   border-color: var(--accent);
   background: var(--accent-dim);
 }
+
+/* Info button and dialog */
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 0.72rem;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.info-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+.info-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+.info-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.info-dialog-header h2 {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.info-dialog-body {
+  padding: 14px;
+}
+
+/* Rulebook-style hex diagrams */
+.diagram {
+  --hex-front: #e2bd4f;
+  --hex-side: #1f6c8e;
+  --hex-rear: #c8282d;
+  --hex-self: #8d8a55;
+  --hex-min: #1f6c8e;
+  --hex-short: #5f9e6e;
+  --hex-medium: #e2c35e;
+  --hex-long: #c8282d;
+  --hex-empty: #dcbd9a;
+  --hex-stroke: rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  .diagram {
+    --hex-empty: #4a4036;
+    --hex-stroke: rgba(0, 0, 0, 0.6);
+  }
+}
+.diagram .hex {
+  stroke: var(--hex-stroke);
+  stroke-width: 1.5;
+}
+.arc-svg {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  display: block;
+}
+.arc-front {
+  fill: var(--hex-front);
+  background: var(--hex-front);
+}
+.arc-left,
+.arc-right {
+  fill: var(--hex-side);
+  background: var(--hex-side);
+}
+.arc-rear {
+  fill: var(--hex-rear);
+  background: var(--hex-rear);
+}
+.hex-self {
+  fill: var(--hex-self);
+}
+.hex.dimmed {
+  opacity: 0.5;
+}
+.facing-arrow {
+  fill: #fff;
+  stroke: #222;
+  stroke-width: 1;
+}
+.arc-label,
+.range-label,
+.hex-number {
+  font-family: var(--mono);
+  font-weight: 800;
+  text-anchor: middle;
+  fill: #fff;
+  stroke: #1a1a1a;
+  stroke-width: 2.5px;
+  paint-order: stroke;
+  pointer-events: none;
+}
+.arc-label {
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+}
+.dimmed-label {
+  opacity: 0.55;
+}
+.diagram-caption {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.diagram-caption strong {
+  color: var(--text);
+}
+.arc-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+.arc-legend li {
+  display: grid;
+  grid-template-columns: 14px 6.5em minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+.arc-legend li.selected {
+  background: var(--accent-dim);
+}
+.arc-legend .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.arc-legend-name {
+  font-weight: 700;
+}
+.arc-legend-weapons {
+  color: var(--text-dim);
+}
+.range-scroll {
+  overflow-x: auto;
+}
+.range-svg {
+  width: 100%;
+  display: block;
+}
+.range-min {
+  fill: var(--hex-min);
+}
+.range-short {
+  fill: var(--hex-short);
+}
+.range-medium {
+  fill: var(--hex-medium);
+}
+.range-long {
+  fill: var(--hex-long);
+}
+.range-out {
+  fill: var(--hex-empty);
+}
+.hex-number {
+  font-size: 14px;
+}
+.range-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.diagram-weapons button {
+  font-size: 0.8rem;
+}

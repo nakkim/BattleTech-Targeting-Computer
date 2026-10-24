@@ -8,13 +8,18 @@ interface NumberFieldProps {
   min?: number
   max?: number
   hint?: string
+  /** Extra control shown next to the label, e.g. an info button. */
+  info?: ReactNode
 }
 
-export function NumberField({ label, value, onChange, min = 0, max = 99, hint }: NumberFieldProps) {
+export function NumberField({ label, value, onChange, min = 0, max = 99, hint, info }: NumberFieldProps) {
   const clamp = (v: number) => Math.min(max, Math.max(min, v))
   return (
     <label className="field">
-      <span className="field-label">{label}</span>
+      <span className="field-label">
+        {label}
+        {info}
+      </span>
       <span className="stepper">
         <button type="button" onClick={() => onChange(clamp(value - 1))} aria-label={`Decrease ${label}`}>
           –
@@ -65,12 +70,16 @@ interface SegmentedProps<T extends string | number> {
   value: T
   options: { value: T; label: string }[]
   onChange: (value: T) => void
+  info?: ReactNode
 }
 
-export function Segmented<T extends string | number>({ label, value, options, onChange }: SegmentedProps<T>) {
+export function Segmented<T extends string | number>({ label, value, options, onChange, info }: SegmentedProps<T>) {
   return (
     <div className="field">
-      <span className="field-label">{label}</span>
+      <span className="field-label">
+        {label}
+        {info}
+      </span>
       <div className="segmented" role="radiogroup" aria-label={label}>
         {options.map((o) => (
           <button
