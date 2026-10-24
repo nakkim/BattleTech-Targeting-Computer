@@ -451,8 +451,20 @@ fieldset.limb .toggle {
   text-overflow: ellipsis;
 }
 .caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
   color: var(--text-dim);
-  font-size: 0.75rem;
+  align-self: center;
+}
+.caret svg {
+  transition: transform 0.15s ease;
+}
+.caret.open svg {
+  transform: rotate(90deg);
 }
 .loc {
   font-family: var(--mono);
@@ -981,4 +993,24 @@ table.cluster tbody th {
   padding: 5px 10px !important;
   border-color: var(--accent) !important;
   font-weight: 500;
+}
+
+.collapse-toggle .caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--accent);
+}
+.collapse-toggle .caret svg {
+  width: 18px;
+  height: 18px;
+}
+.collapse-toggle:hover .caret {
+  border-color: var(--accent);
+  background: var(--accent-dim);
 }

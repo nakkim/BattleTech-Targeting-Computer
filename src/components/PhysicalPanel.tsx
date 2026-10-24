@@ -4,7 +4,7 @@ import { PHYSICAL_ATTACK_TYPES, type PhysicalAttackResult } from '../rules/physi
 import type { HitTable } from '../rules/tables'
 import type { Target } from '../rules/types'
 import { Messages, ModifierList, TargetNumber } from './Breakdown'
-import { Panel, Segmented, Toggle } from './fields'
+import { Chevron, CollapsiblePanel, Segmented, Toggle } from './fields'
 
 interface Props {
   results: PhysicalAttackResult[]
@@ -24,7 +24,7 @@ function PhysicalRow({ result }: { result: PhysicalAttackResult }) {
     <li className={`weapon ${result.allowed ? '' : 'weapon-idle'}`}>
       <div className="weapon-main physical-main">
         <button type="button" className="weapon-name" onClick={() => setOpen(!open)} aria-expanded={open}>
-          <span className="caret">{open ? '▾' : '▸'}</span>
+          <Chevron open={open} />
           <strong>{result.name}</strong>
         </button>
         {result.allowed ? (
@@ -76,9 +76,14 @@ export function PhysicalPanel({ results, targets, targetId, hatchetTable, onTarg
   const ordered = PHYSICAL_ATTACK_TYPES.map((t) => results.find((r) => r.type === t)!).filter(Boolean)
   const visible = showAll ? ordered : ordered.filter((r) => r.allowed)
   const hidden = ordered.length - visible.length
+  const available = ordered.filter((r) => r.allowed)
+  const best = available.reduce<PhysicalAttackResult | null>((b, r) => (!b || r.probability > b.probability ? r : b), null)
+  const summary = best
+    ? `${available.length} available · best ${best.name} ${best.targetNumber <= 2 ? 'auto' : best.targetNumber > 12 ? 'miss' : `${best.targetNumber}+`}`
+    : 'none available'
 
   return (
-    <Panel title="Physical attacks" className="physical">
+    <CollapsiblePanel id="physical" title="Physical attacks" className="physical" summary={summary}>
       <div className="grid-2">
         <label className="field">
           <span className="field-label">Target</span>
@@ -118,6 +123,6 @@ export function PhysicalPanel({ results, targets, targetId, hatchetTable, onTarg
       {(hidden > 0 || showAll) && (
         <Toggle label={`Show unavailable attacks${hidden > 0 ? ` (${hidden})` : ''}`} checked={showAll} onChange={setShowAll} />
       )}
-    </Panel>
+    </CollapsiblePanel>
   )
 }

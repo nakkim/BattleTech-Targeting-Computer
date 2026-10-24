@@ -5,7 +5,7 @@ import { isLrm, LOCATION_NAMES, LOCATIONS, MOVEMENT_NAMES, WEAPONS, WEAPONS_BY_K
 import type { Location, MountedWeapon, MovementMode, Spotter, Target } from '../rules/types'
 import { newWeapon } from '../state/defaults'
 import { Messages, ModifierList, TargetNumber } from './Breakdown'
-import { Panel, Segmented, Toggle } from './fields'
+import { Chevron, Panel, Segmented, Toggle } from './fields'
 
 interface Props {
   weapons: MountedWeapon[]
@@ -49,7 +49,7 @@ function WeaponRow({
       <div className="weapon-main">
         <input type="checkbox" checked={weapon.fire} onChange={(e) => set({ fire: e.target.checked })} aria-label={`Fire ${spec.name}`} />
         <button type="button" className="weapon-name" onClick={() => setOpen(!open)} aria-expanded={open}>
-          <span className="caret">{open ? '▾' : '▸'}</span>
+          <Chevron open={open} />
           <strong>{spec.name}</strong>
           <span className="loc">
             {weapon.location}
