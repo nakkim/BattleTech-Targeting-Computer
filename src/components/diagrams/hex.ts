@@ -32,3 +32,17 @@ export function hexesWithin(radius: number): { q: number; r: number }[] {
 export function bearing(p: Point): number {
   return (Math.atan2(p.x, -p.y) * 180) / Math.PI
 }
+
+/** Flat-top variant, used by the Attack Direction Diagram (p. 22). */
+export function flatHexCenter(q: number, r: number, size: number): Point {
+  return { x: size * 1.5 * q, y: size * Math.sqrt(3) * (r + q / 2) }
+}
+
+export function flatHexPoints(center: Point, size: number): string {
+  const pts: string[] = []
+  for (let i = 0; i < 6; i++) {
+    const a = ((60 * i) * Math.PI) / 180
+    pts.push(`${(center.x + size * Math.cos(a)).toFixed(2)},${(center.y + size * Math.sin(a)).toFixed(2)}`)
+  }
+  return pts.join(' ')
+}

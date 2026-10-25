@@ -4,6 +4,7 @@ import type { Attacker, MountedWeapon, Target } from "../rules/types";
 import { woodsModifier } from "../rules/weaponAttack";
 import { defaultTarget } from "../state/defaults";
 import { ArcDiagram } from "./diagrams/ArcDiagram";
+import { AttackDirectionDiagram } from "./diagrams/AttackDirectionDiagram";
 import { RangeDiagram } from "./diagrams/RangeDiagram";
 import { WaterDiagram } from "./diagrams/WaterDiagram";
 import { WoodsDiagram } from "./diagrams/WoodsDiagram";
@@ -274,6 +275,11 @@ export function TargetsPanel({
         value={target.attackDirection}
         options={ARC_OPTIONS}
         onChange={(v) => update({ attackDirection: v })}
+        info={
+          <InfoButton title="Attack direction">
+            <AttackDirectionDiagram target={target} />
+          </InfoButton>
+        }
       />
     </Panel>
   );

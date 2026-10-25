@@ -1679,3 +1679,17 @@ table.cluster tbody th {
 .lance-tab-destroyed .lance-tab-name {
   text-decoration: line-through;
 }
+
+/* Attack direction diagram */
+.hex-choice,
+.hex-choice-swatch {
+  fill: #e4e4e4;
+  background: #e4e4e4;
+}
+.zone-lines line {
+  stroke: #111;
+  stroke-width: 2.5;
+}
+.hex-self-swatch {
+  background: var(--hex-self);
+}
