@@ -7,14 +7,14 @@ const RADIUS = 4;
 const EPS = 1e-6;
 
 /** Hit zone of an attack coming from a hex, or 'choice' when the line runs along a zone border. */
-function zoneOf(q: number, r: number): Arc | "choice" | null {
+const zoneOf = (q: number, r: number): Arc | "choice" | null => {
   if (q === 0 && r === 0) return null;
   const a = Math.abs(bearing(flatHexCenter(q, r, SIZE)));
   if (Math.abs(a - 90) < EPS || Math.abs(a - 150) < EPS) return "choice";
   if (a < 90) return "front";
   if (a < 150) return bearing(flatHexCenter(q, r, SIZE)) > 0 ? "right" : "left";
   return "rear";
-}
+};
 
 const LABELS: Record<Arc, { x: number; y: number; lines: string[] }> = {
   front: { x: 0, y: -SIZE * 4.6, lines: ["FRONT HIT ZONE"] },
@@ -30,7 +30,7 @@ const COLUMN_NAMES = {
 };
 
 /** Hit zones around the target, like the rulebook's Attack Direction Diagram (p. 22). */
-export function AttackDirectionDiagram({ target }: { target: Target }) {
+export const AttackDirectionDiagram = ({ target }: { target: Target }) => {
   const hexes = hexesWithin(RADIUS);
   const w = SIZE * (1.5 * RADIUS + 1) + 4;
   const h = SIZE * Math.sqrt(3) * (RADIUS + 0.5) + 4;
@@ -127,4 +127,4 @@ export function AttackDirectionDiagram({ target }: { target: Target }) {
       </ul>
     </div>
   );
-}
+};

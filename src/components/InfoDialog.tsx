@@ -8,7 +8,7 @@ interface Props {
 }
 
 /** Small "i" button that opens a modal dialog with explanatory content. */
-export function InfoButton({ title, children }: Props) {
+export const InfoButton = ({ title, children }: Props) => {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDialogElement>(null)
 

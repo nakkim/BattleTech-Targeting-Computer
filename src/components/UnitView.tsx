@@ -17,7 +17,7 @@ interface Props {
   onChange: (update: (unit: UnitState) => UnitState) => void
 }
 
-export function UnitView({ unit, onChange }: Props) {
+export const UnitView = ({ unit, onChange }: Props) => {
   const set = (patch: Partial<UnitState>) => onChange((u) => ({ ...u, ...patch }))
   const { attacker, targets, weapons, spotter } = unit
 

@@ -14,14 +14,14 @@ interface Props {
 }
 
 /** Weapon types in the loadout, those aimed at this target first. */
-function weaponChoices(weapons: MountedWeapon[], target: Target): WeaponSpec[] {
+const weaponChoices = (weapons: MountedWeapon[], target: Target): WeaponSpec[] => {
   const sorted = [...weapons].sort((a, b) => Number(b.targetId === target.id) - Number(a.targetId === target.id))
   const keys = [...new Set(sorted.map((w) => w.weaponKey))]
   return keys.map((k) => WEAPONS_BY_KEY[k])
 }
 
 /** Range bracket strip like the Minimum Range Diagram (p. 19): one hex per range, numbered with the base Target Number. */
-export function RangeDiagram({ gunnery, target, weapons }: Props) {
+export const RangeDiagram = ({ gunnery, target, weapons }: Props) => {
   const choices = weaponChoices(weapons, target)
   const [key, setKey] = useState(choices[0]?.key ?? 'ML')
   const spec = WEAPONS_BY_KEY[choices.some((c) => c.key === key) ? key : (choices[0]?.key ?? 'ML')]

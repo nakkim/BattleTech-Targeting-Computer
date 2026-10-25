@@ -6,7 +6,7 @@ import { advanceTurn, initialLance, newUnit, normalizeLance, type LanceState, ty
 import { usePersistentState } from './state/usePersistentState'
 import './App.css'
 
-export default function App() {
+const App = () => {
   const [storedLance, setLance] = usePersistentState<LanceState>('btc-lance-v1', initialLance)
   const lance = useMemo(() => normalizeLance(storedLance), [storedLance])
   const updateLance = (update: (lance: LanceState) => LanceState) => setLance((l) => update(normalizeLance(l)))
@@ -85,3 +85,5 @@ export default function App() {
     </div>
   )
 }
+
+export default App

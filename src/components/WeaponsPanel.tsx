@@ -23,11 +23,11 @@ interface Props {
 
 const MOVEMENT_OPTIONS = (Object.keys(MOVEMENT_NAMES) as MovementMode[]).map((m) => ({ value: m, label: MOVEMENT_NAMES[m] }))
 
-function bracketLabel(r: WeaponAttackResult): string {
+const bracketLabel = (r: WeaponAttackResult): string => {
   return r.bracket === 'out' ? 'OUT' : r.bracket.toUpperCase()
 }
 
-function bracketTitle(r: WeaponAttackResult, range: number): string {
+const bracketTitle = (r: WeaponAttackResult, range: number): string => {
   const { spec } = r
   const brackets = `Short 1–${spec.short}, medium ${spec.short + 1}–${spec.medium}, long ${spec.medium + 1}–${spec.long}`
   const min = spec.minRange > 0 ? `; minimum range ${spec.minRange}` : ''
@@ -36,7 +36,7 @@ function bracketTitle(r: WeaponAttackResult, range: number): string {
   return `${r.bracket[0].toUpperCase()}${r.bracket.slice(1)} range at ${range} hexes (${mod}). ${brackets}${min}`
 }
 
-function WeaponRow({
+const WeaponRow = ({
   weapon,
   result,
   targets,
@@ -51,7 +51,7 @@ function WeaponRow({
   targets: Target[]
   onChange: (w: MountedWeapon) => void
   onRemove: () => void
-}) {
+}) => {
   const [open, setOpen] = useState(false)
   const spec = WEAPONS_BY_KEY[weapon.weaponKey]
   const target = targets.find((t) => t.id === weapon.targetId)
@@ -180,7 +180,7 @@ function WeaponRow({
   )
 }
 
-export function WeaponsPanel(props: Props) {
+export const WeaponsPanel = (props: Props) => {
   const { weapons, results, targets, spotter, onChange } = props
   const [weaponKey, setWeaponKey] = useState('ML')
   const [location, setLocation] = useState<Location>('RA')

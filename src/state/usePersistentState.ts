@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /** useState that is saved to localStorage, falling back to the initial value. */
-export function usePersistentState<T>(key: string, initial: () => T): [T, React.Dispatch<React.SetStateAction<T>>] {
+export const usePersistentState = <T>(key: string, initial: () => T): [T, React.Dispatch<React.SetStateAction<T>>] => {
   const [value, setValue] = useState<T>(() => {
     const fallback = initial()
     try {

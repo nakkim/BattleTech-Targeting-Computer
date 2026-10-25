@@ -4,7 +4,7 @@ import { defaultArm, defaultAttacker, defaultTarget, newWeapon } from './default
 /** Record sheet data per MegaMek unit files (mm-data) and Sarna.net. */
 
 /** HGN-732 Highlander: 90 tons, walk 3 / jump 3, 12 single heat sinks. */
-export function highlanderAttacker(name = 'Highlander HGN-732'): Attacker {
+export const highlanderAttacker = (name = 'Highlander HGN-732'): Attacker => {
   return {
     ...defaultAttacker(),
     name,
@@ -24,16 +24,16 @@ const HIGHLANDER_WEAPONS: [string, Location][] = [
   ['ML', 'RT'],
 ]
 
-export function highlanderWeapons(targetId: string): MountedWeapon[] {
+export const highlanderWeapons = (targetId: string): MountedWeapon[] => {
   return HIGHLANDER_WEAPONS.map(([key, loc]) => newWeapon(key, loc, targetId))
 }
 
 /** HBK-4G Hunchback: 50 tons, walk 4. AC/20 (RT), medium lasers (LA, RA), small laser (HD). */
-export function hunchbackTarget(): Target {
+export const hunchbackTarget = (): Target => {
   return { ...defaultTarget('Hunchback HBK-4G', true), tonnage: 50, range: 5 }
 }
 
 /** LCT-1V Locust: 20 tons, walk 8. Medium laser (CT), machine guns (LA, RA). */
-export function locustTarget(): Target {
+export const locustTarget = (): Target => {
   return { ...defaultTarget('Locust LCT-1V', false), tonnage: 20, range: 8 }
 }

@@ -8,7 +8,7 @@ const W = SIZE * Math.sqrt(3)
 const MAX_CLEAR = 4
 
 /** Trees in a hex: light woods are a few scattered trees, heavy woods a dense canopy. */
-function Trees({ c, kind }: { c: Point; kind: Exclude<Terrain, 'clear'> }) {
+const Trees = ({ c, kind }: { c: Point; kind: Exclude<Terrain, 'clear'> }) => {
   const spots: [number, number, number][] =
     kind === 'light'
       ? [
@@ -41,7 +41,7 @@ interface Cell {
   total?: number
 }
 
-function buildCells(target: Target): Cell[] {
+const buildCells = (target: Target): Cell[] => {
   const woods: Cell[] = [
     ...Array.from({ length: target.interveningHeavy }, () => ({ kind: 'heavy' as const, modifier: 2 })),
     ...Array.from({ length: target.interveningLight }, () => ({ kind: 'light' as const, modifier: 1 })),
@@ -60,7 +60,7 @@ function buildCells(target: Target): Cell[] {
 }
 
 /** Line of fire through woods, styled like the rulebook's Line of Sight Diagram (p. 14). */
-export function WoodsDiagram({ target }: { target: Target }) {
+export const WoodsDiagram = ({ target }: { target: Target }) => {
   const cells = buildCells(target)
   const total = woodsModifier(target)
   const blocked = total > 2

@@ -12,7 +12,7 @@ interface NumberFieldProps {
   info?: ReactNode
 }
 
-export function NumberField({ label, value, onChange, min = 0, max = 99, hint, info }: NumberFieldProps) {
+export const NumberField = ({ label, value, onChange, min = 0, max = 99, hint, info }: NumberFieldProps) => {
   const clamp = (v: number) => Math.min(max, Math.max(min, v))
   return (
     <label className="field">
@@ -50,7 +50,7 @@ interface SelectFieldProps<T extends string> {
   onChange: (value: T) => void
 }
 
-export function SelectField<T extends string>({ label, value, options, onChange }: SelectFieldProps<T>) {
+export const SelectField = <T extends string>({ label, value, options, onChange }: SelectFieldProps<T>) => {
   return (
     <label className="field">
       <span className="field-label">{label}</span>
@@ -75,7 +75,7 @@ interface SegmentedProps<T extends string | number> {
   title?: string
 }
 
-export function Segmented<T extends string | number>({ label, value, options, onChange, info, title }: SegmentedProps<T>) {
+export const Segmented = <T extends string | number>({ label, value, options, onChange, info, title }: SegmentedProps<T>) => {
   return (
     <div className="field" title={title}>
       <span className="field-label">
@@ -108,7 +108,7 @@ interface ToggleProps {
   title?: string
 }
 
-export function Toggle({ label, checked, onChange, title }: ToggleProps) {
+export const Toggle = ({ label, checked, onChange, title }: ToggleProps) => {
   return (
     <label className="toggle" title={title}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
@@ -127,7 +127,7 @@ interface CollapsiblePanelProps {
   className?: string
 }
 
-export function CollapsiblePanel({ id, title, summary, children, className = '' }: CollapsiblePanelProps) {
+export const CollapsiblePanel = ({ id, title, summary, children, className = '' }: CollapsiblePanelProps) => {
   const [collapsed, setCollapsed] = usePersistentState(`btc-collapsed-${id}`, () => false)
   return (
     <section className={`panel collapsible ${collapsed ? 'collapsed' : ''} ${className}`}>
@@ -143,7 +143,7 @@ export function CollapsiblePanel({ id, title, summary, children, className = '' 
   )
 }
 
-export function Panel({ title, children, actions, className = '' }: { title: string; children: ReactNode; actions?: ReactNode; className?: string }) {
+export const Panel = ({ title, children, actions, className = '' }: { title: string; children: ReactNode; actions?: ReactNode; className?: string }) => {
   return (
     <section className={`panel ${className}`}>
       <header className="panel-header">
@@ -156,7 +156,7 @@ export function Panel({ title, children, actions, className = '' }: { title: str
 }
 
 /** Expand/collapse indicator: points right when closed, down when open. */
-export function Chevron({ open }: { open: boolean }) {
+export const Chevron = ({ open }: { open: boolean }) => {
   return (
     <span className={`caret ${open ? 'open' : ''}`} aria-hidden="true">
       <svg viewBox="0 0 16 16" width="16" height="16">

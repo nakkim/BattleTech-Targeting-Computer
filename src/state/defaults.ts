@@ -43,7 +43,7 @@ export const defaultAttacker = (): Attacker => ({
 })
 
 let counter = 0
-export function newId(prefix: string): string {
+export const newId = (prefix: string): string => {
   counter++
   return `${prefix}-${Date.now().toString(36)}-${counter}`
 }
@@ -72,6 +72,6 @@ export const defaultTarget = (name = 'Target 1', primary = true): Target => ({
 
 export const defaultSpotter = (): Spotter => ({ movement: 'stationary', attacked: false, prone: false })
 
-export function newWeapon(weaponKey: string, location: MountedWeapon['location'], targetId: string): MountedWeapon {
+export const newWeapon = (weaponKey: string, location: MountedWeapon['location'], targetId: string): MountedWeapon => {
   return { id: newId('w'), weaponKey, location, rear: false, fire: true, targetId, indirect: false, aimedAt: null }
 }

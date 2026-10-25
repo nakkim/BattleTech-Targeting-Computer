@@ -13,7 +13,7 @@ import type { Arc, ArmState, Attacker, AttackResult, Location, Modifier, Mounted
 
 export type RangeBracket = 'short' | 'medium' | 'long' | 'out'
 
-export function rangeBracket(spec: WeaponSpec, range: number): RangeBracket {
+export const rangeBracket = (spec: WeaponSpec, range: number): RangeBracket => {
   if (range <= spec.short) return 'short'
   if (range <= spec.medium) return 'medium'
   if (range <= spec.long) return 'long'
@@ -27,25 +27,25 @@ export const RANGE_MODIFIER: Record<Exclude<RangeBracket, 'out'>, number> = {
 }
 
 /** [Min. Range] – [Target Range] + 1 when the target is within minimum range (p. 18). */
-export function minimumRangeModifier(spec: WeaponSpec, range: number): number {
+export const minimumRangeModifier = (spec: WeaponSpec, range: number): number => {
   if (spec.minRange <= 0 || range > spec.minRange) return 0
   return spec.minRange - range + 1
 }
 
-export function isArm(location: Location): location is 'LA' | 'RA' {
+export const isArm = (location: Location): location is 'LA' | 'RA' => {
   return location === 'LA' || location === 'RA'
 }
 
-export function isLeg(location: Location): boolean {
+export const isLeg = (location: Location): boolean => {
   return location === 'LL' || location === 'RL'
 }
 
-export function armOf(attacker: Attacker, location: 'LA' | 'RA'): ArmState {
+export const armOf = (attacker: Attacker, location: 'LA' | 'RA'): ArmState => {
   return location === 'LA' ? attacker.leftArm : attacker.rightArm
 }
 
 /** Arcs a weapon mounted in the given location can fire into (p. 14-15). */
-export function weaponArcs(location: Location, rear: boolean, armsFlipped: boolean): Arc[] {
+export const weaponArcs = (location: Location, rear: boolean, armsFlipped: boolean): Arc[] => {
   if (rear) return ['rear']
   if (isArm(location)) {
     if (armsFlipped) return ['rear']
@@ -55,24 +55,24 @@ export function weaponArcs(location: Location, rear: boolean, armsFlipped: boole
 }
 
 /** A standing 'Mech in Depth 2+ water, or a prone 'Mech in Depth 1+, is submerged (p. 14). */
-export function isSubmerged(waterDepth: number, prone: boolean): boolean {
+export const isSubmerged = (waterDepth: number, prone: boolean): boolean => {
   return waterDepth >= 2 || (prone && waterDepth >= 1)
 }
 
 /** Woods modifiers: target hex plus each intervening woods hex (p. 17). */
-export function woodsModifier(target: Pick<Target, 'terrain' | 'interveningLight' | 'interveningHeavy'>): number {
+export const woodsModifier = (target: Pick<Target, 'terrain' | 'interveningLight' | 'interveningHeavy'>): number => {
   const targetHex = target.terrain === 'light' ? 1 : target.terrain === 'heavy' ? 2 : 0
   return targetHex + target.interveningLight + target.interveningHeavy * 2
 }
 
 /** Partial cover applies for hill/building cover or for a standing 'Mech in Depth 1 water. */
-export function hasPartialCover(target: Target): boolean {
+export const hasPartialCover = (target: Target): boolean => {
   if (target.prone) return false
   return target.partialCover || target.waterDepth === 1
 }
 
 /** Damage modifier for weapons in a damaged arm (p. 19). */
-export function armDamageModifier(arm: ArmState): Modifier[] {
+export const armDamageModifier = (arm: ArmState): Modifier[] => {
   if (arm.shoulderHit) return [{ gator: 'O', label: 'Shoulder hit', value: 4 }]
   const mods: Modifier[] = []
   if (arm.upperArmHit) mods.push({ gator: 'O', label: 'Upper arm actuator hit', value: 1 })
@@ -80,7 +80,7 @@ export function armDamageModifier(arm: ArmState): Modifier[] {
   return mods
 }
 
-export function attackerMovementModifiers(movement: Attacker['movement'], prone: boolean, who = 'Attacker'): Modifier[] {
+export const attackerMovementModifiers = (movement: Attacker['movement'], prone: boolean, who = 'Attacker'): Modifier[] => {
   const mods: Modifier[] = [
     { gator: 'A', label: `${who} ${MOVEMENT_NAMES[movement].toLowerCase()}`, value: ATTACKER_MOVEMENT_MODIFIER[movement] },
   ]
@@ -88,7 +88,7 @@ export function attackerMovementModifiers(movement: Attacker['movement'], prone:
   return mods
 }
 
-export function targetModifiers(target: Target): Modifier[] {
+export const targetModifiers = (target: Target): Modifier[] => {
   const mods: Modifier[] = [
     { gator: 'T', label: `Target moved ${target.hexesMoved} hex${target.hexesMoved === 1 ? '' : 'es'}`, value: targetMovementModifier(target.hexesMoved) },
   ]
@@ -103,7 +103,7 @@ export function targetModifiers(target: Target): Modifier[] {
   return mods
 }
 
-export function terrainModifiers(target: Target, { partialCover = true } = {}): Modifier[] {
+export const terrainModifiers = (target: Target, { partialCover = true } = {}): Modifier[] => {
   const mods: Modifier[] = []
   if (target.terrain === 'light') mods.push({ gator: 'O', label: 'Target in light woods', value: 1 })
   if (target.terrain === 'heavy') mods.push({ gator: 'O', label: 'Target in heavy woods', value: 2 })
@@ -116,7 +116,7 @@ export function terrainModifiers(target: Target, { partialCover = true } = {}): 
   return mods
 }
 
-export function multipleTargetsModifier(target: Target): Modifier[] {
+export const multipleTargetsModifier = (target: Target): Modifier[] => {
   if (target.primary) return []
   return target.arc === 'front'
     ? [{ gator: 'O', label: 'Secondary target, forward arc', value: 1 }]
@@ -138,17 +138,17 @@ export interface WeaponAttackResult extends AttackResult {
   expectedDamage: number
 }
 
-function summarise(modifiers: Modifier[]): number {
+const summarise = (modifiers: Modifier[]): number => {
   return modifiers.reduce((sum, m) => sum + m.value, 0)
 }
 
 /** Average damage when the weapon hits (cluster hits averaged for missiles). */
-export function averageDamageOnHit(spec: WeaponSpec): number {
+export const averageDamageOnHit = (spec: WeaponSpec): number => {
   if (spec.missiles) return averageClusterHits(spec.missiles) * spec.damage
   return spec.damage
 }
 
-export function resolveWeaponAttack(weapon: MountedWeapon, ctx: WeaponAttackContext): WeaponAttackResult {
+export const resolveWeaponAttack = (weapon: MountedWeapon, ctx: WeaponAttackContext): WeaponAttackResult => {
   const { attacker, target, spotter } = ctx
   const spec = WEAPONS_BY_KEY[weapon.weaponKey]
   const reasons: string[] = []
@@ -254,7 +254,7 @@ export interface TargetCheck {
 }
 
 /** Checks about the set of declared targets, e.g. primary target rules (p. 17). */
-export function checkTargets(targets: Target[], usedTargetIds: Set<string>): TargetCheck {
+export const checkTargets = (targets: Target[], usedTargetIds: Set<string>): TargetCheck => {
   const warnings: string[] = []
   const used = targets.filter((t) => usedTargetIds.has(t.id))
   const primaries = used.filter((t) => t.primary)

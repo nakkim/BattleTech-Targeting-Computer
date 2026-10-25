@@ -10,7 +10,7 @@ import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
 const attacker = (over: Partial<Attacker> = {}): Attacker => ({ ...defaultAttacker(), ...over })
 const target = (over: Partial<Target> = {}): Target => ({ ...defaultTarget(), ...over })
 
-function weaponTn(a: Attacker, t: Target, key: string, location: 'RA' | 'LA' | 'RT' | 'CT' = 'RT') {
+const weaponTn = (a: Attacker, t: Target, key: string, location: 'RA' | 'LA' | 'RT' | 'CT' = 'RT') => {
   const w = newWeapon(key, location, t.id)
   return resolveWeaponAttack(w, { attacker: a, target: t, spotter: defaultSpotter(), attackerIsSpotting: false })
 }

@@ -23,7 +23,7 @@ export interface LanceState {
 }
 
 /** A new lance member: an HGN-732 Highlander facing a Hunchback (primary) and a Locust. */
-export function newUnit(name?: string): UnitState {
+export const newUnit = (name?: string): UnitState => {
   const target = hunchbackTarget()
   return {
     id: newId('u'),
@@ -39,20 +39,20 @@ export function newUnit(name?: string): UnitState {
 }
 
 /** Fill in attacker fields added after a lance was saved, so old saves keep working. */
-export function normalizeLance(lance: LanceState): LanceState {
+export const normalizeLance = (lance: LanceState): LanceState => {
   return {
     ...lance,
     units: lance.units.map((u) => ({ ...u, attacker: { ...defaultAttacker(), ...u.attacker } })),
   }
 }
 
-export function initialLance(): LanceState {
+export const initialLance = (): LanceState => {
   const unit = newUnit()
   return { units: [unit], activeUnitId: unit.id }
 }
 
 /** Clear movement and per-turn declarations, and carry projected heat forward. */
-export function advanceTurn(unit: UnitState): UnitState {
+export const advanceTurn = (unit: UnitState): UnitState => {
   const { attacker, targets, weapons } = unit
   return {
     ...unit,

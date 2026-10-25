@@ -11,7 +11,7 @@ interface Props {
 
 const MOVEMENT_OPTIONS = (Object.keys(MOVEMENT_NAMES) as MovementMode[]).map((m) => ({ value: m, label: MOVEMENT_NAMES[m] }))
 
-function ArmDesign({ title, arm, onChange }: { title: string; arm: ArmState; onChange: (arm: ArmState) => void }) {
+const ArmDesign = ({ title, arm, onChange }: { title: string; arm: ArmState; onChange: (arm: ArmState) => void }) => {
   const set = (patch: Partial<ArmState>) => onChange({ ...arm, ...patch })
   return (
     <fieldset className="limb">
@@ -24,7 +24,7 @@ function ArmDesign({ title, arm, onChange }: { title: string; arm: ArmState; onC
 }
 
 /** Record sheet data that stays fixed during a game. */
-export function MechDataPanel({ attacker, onChange }: Props) {
+export const MechDataPanel = ({ attacker, onChange }: Props) => {
   const set = (patch: Partial<Attacker>) => onChange({ ...attacker, ...patch })
   const hatchets = [attacker.leftArm.hasHatchet && 'LA', attacker.rightArm.hasHatchet && 'RA'].filter(Boolean)
   return (
@@ -59,7 +59,7 @@ export function MechDataPanel({ attacker, onChange }: Props) {
   )
 }
 
-function ArmDamage({ title, arm, onChange }: { title: string; arm: ArmState; onChange: (arm: ArmState) => void }) {
+const ArmDamage = ({ title, arm, onChange }: { title: string; arm: ArmState; onChange: (arm: ArmState) => void }) => {
   const set = (patch: Partial<ArmState>) => onChange({ ...arm, ...patch })
   return (
     <fieldset className="limb">
@@ -72,7 +72,7 @@ function ArmDamage({ title, arm, onChange }: { title: string; arm: ArmState; onC
   )
 }
 
-function LegDamage({ title, leg, onChange }: { title: string; leg: LegState; onChange: (leg: LegState) => void }) {
+const LegDamage = ({ title, leg, onChange }: { title: string; leg: LegState; onChange: (leg: LegState) => void }) => {
   const set = (patch: Partial<LegState>) => onChange({ ...leg, ...patch })
   return (
     <fieldset className="limb">
@@ -92,7 +92,7 @@ const LOCATION_GRID: (Location | null)[][] = [
   [null, 'LL', null, 'RL', null],
 ]
 
-function DestroyedLocations({ attacker, onChange }: { attacker: Attacker; onChange: (locations: Location[]) => void }) {
+const DestroyedLocations = ({ attacker, onChange }: { attacker: Attacker; onChange: (locations: Location[]) => void }) => {
   const lost = attacker.destroyedLocations
   const toggle = (loc: Location) => onChange(lost.includes(loc) ? lost.filter((l) => l !== loc) : [...lost, loc])
   return (
@@ -129,7 +129,7 @@ function DestroyedLocations({ attacker, onChange }: { attacker: Attacker; onChan
 }
 
 /** Values that change from turn to turn: movement, heat, position and damage. */
-export function AttackerPanel({ attacker, onChange }: Props) {
+export const AttackerPanel = ({ attacker, onChange }: Props) => {
   const set = (patch: Partial<Attacker>) => onChange({ ...attacker, ...patch })
   return (
     <Panel title="This turn" className="attacker">

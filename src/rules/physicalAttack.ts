@@ -44,7 +44,7 @@ const BASE_MODIFIER: Record<string, number> = {
 
 type Kind = 'punch' | 'kick' | 'hatchet' | 'club' | 'push' | 'charge' | 'dfa'
 
-function kindOf(type: PhysicalAttackType): Kind {
+const kindOf = (type: PhysicalAttackType): Kind => {
   if (type.startsWith('punch')) return 'punch'
   if (type.startsWith('kick')) return 'kick'
   if (type.startsWith('hatchet')) return 'hatchet'
@@ -80,7 +80,7 @@ interface LevelRule {
 }
 
 /** Different Levels Table and prone target rules, p. 25. */
-export function levelRule(kind: Kind, target: Target): LevelRule {
+export const levelRule = (kind: Kind, target: Target): LevelRule => {
   if (kind === 'dfa') return { allowed: true }
   const diff = target.levelDifference
   if (Math.abs(diff) > 1) return { allowed: false }
@@ -100,7 +100,7 @@ export function levelRule(kind: Kind, target: Target): LevelRule {
   return { allowed: kind === 'kick' || kind === 'club' || kind === 'hatchet', table: 'punch' }
 }
 
-function defaultTable(kind: Kind, ctx: PhysicalAttackContext): HitTable | null {
+const defaultTable = (kind: Kind, ctx: PhysicalAttackContext): HitTable | null => {
   switch (kind) {
     case 'punch':
     case 'dfa':
@@ -116,21 +116,21 @@ function defaultTable(kind: Kind, ctx: PhysicalAttackContext): HitTable | null {
   }
 }
 
-function halve(value: number, times: number): number {
+const halve = (value: number, times: number): number => {
   let v = value
   for (let i = 0; i < times; i++) v = Math.floor(v / 2)
   return v
 }
 
-function armOf(attacker: Attacker, loc: 'LA' | 'RA'): ArmState {
+const armOf = (attacker: Attacker, loc: 'LA' | 'RA'): ArmState => {
   return loc === 'LA' ? attacker.leftArm : attacker.rightArm
 }
 
-function legOf(attacker: Attacker, loc: 'LL' | 'RL'): LegState {
+const legOf = (attacker: Attacker, loc: 'LL' | 'RL'): LegState => {
   return loc === 'LL' ? attacker.leftLeg : attacker.rightLeg
 }
 
-export function resolvePhysicalAttack(type: PhysicalAttackType, ctx: PhysicalAttackContext): PhysicalAttackResult {
+export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAttackContext): PhysicalAttackResult => {
   const { attacker, target, firedLocations } = ctx
   const kind = kindOf(type)
   const reasons: string[] = []

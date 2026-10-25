@@ -13,7 +13,7 @@ export const TWO_D6_WAYS: Record<number, number> = {
   12: 1,
 }
 
-export function probability2d6(total: number): number {
+export const probability2d6 = (total: number): number => {
   return (TWO_D6_WAYS[total] ?? 0) / 36
 }
 
@@ -21,7 +21,7 @@ export function probability2d6(total: number): number {
  * Chance to roll the Target Number or higher on 2D6.
  * A Target Number of 2 or less always hits; above 12 always misses (rulebook p. 15).
  */
-export function chanceToHit(targetNumber: number): number {
+export const chanceToHit = (targetNumber: number): number => {
   if (targetNumber <= 2) return 1
   if (targetNumber > 12) return 0
   let ways = 0
@@ -29,7 +29,7 @@ export function chanceToHit(targetNumber: number): number {
   return ways / 36
 }
 
-export function formatPercent(p: number): string {
+export const formatPercent = (p: number): string => {
   if (p === 0) return '0%'
   if (p === 1) return '100%'
   const pct = p * 100

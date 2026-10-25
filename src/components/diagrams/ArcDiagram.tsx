@@ -8,7 +8,7 @@ const RADIUS = 3
 const EPS = 1e-6
 
 /** Arc of a hex by its bearing: 120° front, 60° per side, 120° rear (as in the Firing Arcs Diagram, p. 15). */
-function arcOf(p: Point): Arc | null {
+const arcOf = (p: Point): Arc | null => {
   if (p.x === 0 && p.y === 0) return null
   const a = bearing(p)
   if (Math.abs(a) <= 60 + EPS) return 'front'
@@ -19,7 +19,7 @@ function arcOf(p: Point): Arc | null {
 const ARC_BEARING: Record<Arc, number> = { front: 0, right: 90, left: -90, rear: 180 }
 
 
-function arcLabel(arc: Arc, armsFlipped: boolean): string[] {
+const arcLabel = (arc: Arc, armsFlipped: boolean): string[] => {
   if (armsFlipped) {
     if (arc === 'rear') return ['REAR ARC', 'ARMS FLIPPED']
     return [`${ARC_NAMES[arc].toUpperCase()} ARC`, arc === 'front' ? 'TORSO & HEAD' : '']
@@ -42,7 +42,7 @@ interface Props {
   weapons: MountedWeapon[]
 }
 
-export function ArcDiagram({ attacker, target, weapons }: Props) {
+export const ArcDiagram = ({ attacker, target, weapons }: Props) => {
   const hexes = hexesWithin(RADIUS)
   const span = SIZE * Math.sqrt(3) * (RADIUS + 0.5) + 4
   const vspan = SIZE * (1.5 * RADIUS + 1) + 4

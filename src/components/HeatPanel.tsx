@@ -2,7 +2,7 @@ import type { HeatProjection } from '../rules/heat'
 import { heatEffects } from '../rules/heat'
 import { Panel } from './fields'
 
-export function HeatPanel({ current, projection }: { current: number; projection: HeatProjection }) {
+export const HeatPanel = ({ current, projection }: { current: number; projection: HeatProjection }) => {
   const now = heatEffects(current)
   const level = Math.min(30, projection.next)
   return (

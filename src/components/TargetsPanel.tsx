@@ -27,14 +27,14 @@ interface Props {
   onChange: (targets: Target[]) => void;
 }
 
-export function TargetsPanel({
+export const TargetsPanel = ({
   targets,
   selectedId,
   attacker,
   weapons,
   onSelect,
   onChange,
-}: Props) {
+}: Props) => {
   const torsoTwisted = attacker.torsoTwisted;
   const target = targets.find((t) => t.id === selectedId) ?? targets[0];
   const update = (patch: Partial<Target>) =>
@@ -283,7 +283,7 @@ export function TargetsPanel({
       />
     </Panel>
   );
-}
+};
 
 interface TargetDataProps {
   target: Target;
@@ -291,7 +291,7 @@ interface TargetDataProps {
 }
 
 /** Target data that stays fixed during a game (used by charge, DFA and the tab name). */
-export function TargetDataPanel({ target, onChange }: TargetDataProps) {
+export const TargetDataPanel = ({ target, onChange }: TargetDataProps) => {
   const update = (patch: Partial<Target>) => onChange({ ...target, ...patch });
   return (
     <CollapsiblePanel
@@ -330,4 +330,4 @@ export function TargetDataPanel({ target, onChange }: TargetDataProps) {
       </div>
     </CollapsiblePanel>
   );
-}
+};

@@ -16,7 +16,7 @@ export interface HeatProjection {
 }
 
 /** Movement heat, Heat Point Table p. 37. */
-export function movementHeat(attacker: Attacker): number {
+export const movementHeat = (attacker: Attacker): number => {
   switch (attacker.movement) {
     case 'walked':
       return 1
@@ -29,7 +29,7 @@ export function movementHeat(attacker: Attacker): number {
   }
 }
 
-export function heatEffects(heat: number): string[] {
+export const heatEffects = (heat: number): string[] => {
   const effects: string[] = []
   const toHit = heatToHitModifier(heat)
   if (toHit > 0) effects.push(`+${toHit} to-hit for weapon attacks`)
@@ -43,7 +43,7 @@ export function heatEffects(heat: number): string[] {
   return effects
 }
 
-export function projectHeat(attacker: Attacker, weapons: MountedWeapon[]): HeatProjection {
+export const projectHeat = (attacker: Attacker, weapons: MountedWeapon[]): HeatProjection => {
   const lines: HeatLine[] = []
   const move = movementHeat(attacker)
   if (move > 0) lines.push({ label: `Movement (${attacker.movement})`, value: move })

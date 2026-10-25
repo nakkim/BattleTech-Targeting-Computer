@@ -17,7 +17,7 @@ interface Props {
 
 const TABLE_NAMES: Record<HitTable, string> = { standard: 'Hit Location', punch: 'Punch', kick: 'Kick' }
 
-function PhysicalRow({ result }: { result: PhysicalAttackResult }) {
+const PhysicalRow = ({ result }: { result: PhysicalAttackResult }) => {
   const [open, setOpen] = useState(false)
   const total = result.damageGroups.reduce((s, d) => s + d, 0)
   return (
@@ -71,7 +71,7 @@ function PhysicalRow({ result }: { result: PhysicalAttackResult }) {
   )
 }
 
-export function PhysicalPanel({ results, targets, targetId, hatchetTable, onTargetChange, onHatchetTableChange }: Props) {
+export const PhysicalPanel = ({ results, targets, targetId, hatchetTable, onTargetChange, onHatchetTableChange }: Props) => {
   const [showAll, setShowAll] = useState(false)
   const ordered = PHYSICAL_ATTACK_TYPES.map((t) => results.find((r) => r.type === t)!).filter(Boolean)
   const visible = showAll ? ordered : ordered.filter((r) => r.allowed)

@@ -3,7 +3,7 @@ import type { AttackResult, Modifier } from '../rules/types'
 
 const GATOR_TITLES = { G: 'Gunnery / base', A: 'Attacker', T: 'Target', O: 'Other', R: 'Range' }
 
-export function ModifierList({ modifiers }: { modifiers: Modifier[] }) {
+export const ModifierList = ({ modifiers }: { modifiers: Modifier[] }) => {
   return (
     <ul className="modifiers">
       {modifiers.map((m, i) => (
@@ -19,7 +19,7 @@ export function ModifierList({ modifiers }: { modifiers: Modifier[] }) {
   )
 }
 
-export function TargetNumber({ result }: { result: AttackResult }) {
+export const TargetNumber = ({ result }: { result: AttackResult }) => {
   if (!result.allowed)
     return (
       <span className="tn tn-blocked" title={`Cannot attack: ${result.reasons.join('; ')}`}>
@@ -42,7 +42,7 @@ export function TargetNumber({ result }: { result: AttackResult }) {
   )
 }
 
-export function Messages({ result }: { result: AttackResult }) {
+export const Messages = ({ result }: { result: AttackResult }) => {
   if (result.reasons.length === 0 && result.warnings.length === 0) return null
   return (
     <ul className="messages">

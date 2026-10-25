@@ -9,7 +9,7 @@ interface Props {
   target: Target
 }
 
-export function HitLocationPanel({ target }: Props) {
+export const HitLocationPanel = ({ target }: Props) => {
   const [table, setTable] = useState<HitTable>('standard')
   const chances = hitLocationChances(table, target.attackDirection)
   const cover = hasPartialCover(target)

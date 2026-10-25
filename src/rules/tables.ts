@@ -26,7 +26,7 @@ export const WEAPONS: WeaponSpec[] = [
 
 export const WEAPONS_BY_KEY: Record<string, WeaponSpec> = Object.fromEntries(WEAPONS.map((w) => [w.key, w]))
 
-export function isLrm(spec: WeaponSpec): boolean {
+export const isLrm = (spec: WeaponSpec): boolean => {
   return spec.key.startsWith('LRM')
 }
 
@@ -66,7 +66,7 @@ export const MOVEMENT_NAMES: Record<MovementMode, string> = {
 }
 
 /** Target movement modifier (TMM) by hexes moved, Attack Modifiers Table p. 19. */
-export function targetMovementModifier(hexes: number): number {
+export const targetMovementModifier = (hexes: number): number => {
   if (hexes <= 2) return 0
   if (hexes <= 4) return 1
   if (hexes <= 6) return 2
@@ -77,7 +77,7 @@ export function targetMovementModifier(hexes: number): number {
 }
 
 /** Heat modifier to weapon attacks, Heat Data p. 37-38. */
-export function heatToHitModifier(heat: number): number {
+export const heatToHitModifier = (heat: number): number => {
   if (heat >= 24) return 4
   if (heat >= 17) return 3
   if (heat >= 13) return 2
@@ -85,7 +85,7 @@ export function heatToHitModifier(heat: number): number {
   return 0
 }
 
-export function heatMovementPenalty(heat: number): number {
+export const heatMovementPenalty = (heat: number): number => {
   if (heat >= 25) return 5
   if (heat >= 20) return 4
   if (heat >= 15) return 3
@@ -95,7 +95,7 @@ export function heatMovementPenalty(heat: number): number {
 }
 
 /** Shutdown avoid number; null when no check is needed, Infinity when shutdown is automatic. */
-export function shutdownAvoid(heat: number): number | null {
+export const shutdownAvoid = (heat: number): number | null => {
   if (heat >= 30) return Infinity
   if (heat >= 26) return 10
   if (heat >= 22) return 8
@@ -104,7 +104,7 @@ export function shutdownAvoid(heat: number): number | null {
   return null
 }
 
-export function ammoExplosionAvoid(heat: number): number | null {
+export const ammoExplosionAvoid = (heat: number): number | null => {
   if (heat >= 28) return 8
   if (heat >= 23) return 6
   if (heat >= 19) return 4
@@ -134,7 +134,7 @@ export const KICK_LOCATION_TABLE: Record<'left' | 'front' | 'right', Location[]>
   right: ['RL', 'RL', 'RL', 'RL', 'RL', 'RL'],
 }
 
-export function tableColumn(direction: Arc): 'left' | 'front' | 'right' {
+export const tableColumn = (direction: Arc): 'left' | 'front' | 'right' => {
   return direction === 'rear' ? 'front' : direction
 }
 
@@ -147,7 +147,7 @@ export interface LocationChance {
 }
 
 /** Probability of each hit location for an attack from the given direction. */
-export function hitLocationChances(table: HitTable, direction: Arc): LocationChance[] {
+export const hitLocationChances = (table: HitTable, direction: Arc): LocationChance[] => {
   const column = tableColumn(direction)
   const rear = direction === 'rear'
   const result = new Map<Location, LocationChance>()
@@ -179,14 +179,14 @@ export const CLUSTER_HITS_TABLE: Record<number, number[]> = {
 
 export const CLUSTER_SIZES = [2, 4, 5, 6, 10, 15, 20]
 
-export function averageClusterHits(size: number): number {
+export const averageClusterHits = (size: number): number => {
   const row = CLUSTER_HITS_TABLE[size]
   if (!row) return size
   return row.reduce((sum, hits, i) => sum + hits * probability2d6(i + 2), 0)
 }
 
 /** Split damage into 5-point groupings, leftover becomes its own grouping (p. 24, 26). */
-export function fivePointGroups(damage: number): number[] {
+export const fivePointGroups = (damage: number): number[] => {
   const groups: number[] = []
   let left = damage
   while (left > 0) {

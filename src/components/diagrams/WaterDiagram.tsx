@@ -29,7 +29,7 @@ const DEPTHS: Depth[] = [
 ]
 
 /** Simple side-view 'Mech silhouette standing on (or lying at) the given floor line. */
-function Mech({ x, floor, prone }: { x: number; floor: number; prone: boolean }) {
+const Mech = ({ x, floor, prone }: { x: number; floor: number; prone: boolean }) => {
   if (prone) {
     const h = L * 0.8
     return (
@@ -53,7 +53,7 @@ function Mech({ x, floor, prone }: { x: number; floor: number; prone: boolean })
   )
 }
 
-function Panel({ d, prone, selected, index }: { d: Depth; prone: boolean; selected: boolean; index: number }) {
+const Panel = ({ d, prone, selected, index }: { d: Depth; prone: boolean; selected: boolean; index: number }) => {
   const x0 = index * PANEL_W
   const cx = x0 + PANEL_W / 2
   const floor = GROUND + d.depth * L
@@ -82,7 +82,7 @@ function Panel({ d, prone, selected, index }: { d: Depth; prone: boolean; select
 }
 
 /** Target 'Mech in water, side view: how deep water affects cover and line of sight (p. 14, 17). */
-export function WaterDiagram({ target }: { target: Target }) {
+export const WaterDiagram = ({ target }: { target: Target }) => {
   const selected = Math.min(target.waterDepth, 2)
   const info = DEPTHS[selected]
   return (

@@ -11,7 +11,7 @@ interface Props {
   onRemove: (id: string) => void
 }
 
-export function LanceTabs({ units, activeId, onSelect, onAdd, onDuplicate, onRemove }: Props) {
+export const LanceTabs = ({ units, activeId, onSelect, onAdd, onDuplicate, onRemove }: Props) => {
   return (
     <nav className="lance-tabs" aria-label="Lance">
       <div className="lance-tablist" role="tablist">
