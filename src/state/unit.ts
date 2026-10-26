@@ -1,8 +1,8 @@
 import { projectHeat } from '../rules/heat'
 import type { HitTable } from '../rules/tables'
 import type { Attacker, MountedWeapon, Spotter, Target } from '../rules/types'
-import { defaultAttacker, defaultSpotter, newId } from './defaults'
-import { highlanderAttacker, highlanderWeapons, hunchbackTarget, locustTarget } from './presets'
+import { createAttacker, createTarget, defaultSpotter, mountWeapons, newId } from './defaults'
+import { HIGHLANDER_HGN_732, HUNCHBACK_HBK_4G, LOCUST_LCT_1V, type MechPreset } from './presets'
 
 /** Everything the targeting computer tracks for one 'Mech of the lance. */
 export interface UnitState {
@@ -22,14 +22,14 @@ export interface LanceState {
   activeUnitId: string
 }
 
-/** A new lance member: an HGN-732 Highlander facing a Hunchback (primary) and a Locust. */
-export const newUnit = (name?: string): UnitState => {
-  const target = hunchbackTarget()
+/** A new lance member facing a Hunchback (primary) and a Locust. Defaults to an HGN-732 Highlander. */
+export const newUnit = ({ attacker, weapons }: MechPreset = HIGHLANDER_HGN_732): UnitState => {
+  const target = createTarget({ ...HUNCHBACK_HBK_4G, range: 5 })
   return {
     id: newId('u'),
-    attacker: highlanderAttacker(name),
-    targets: [target, locustTarget()],
-    weapons: highlanderWeapons(target.id),
+    attacker: createAttacker(attacker),
+    targets: [target, createTarget({ ...LOCUST_LCT_1V, range: 8, primary: false })],
+    weapons: mountWeapons(weapons, target.id),
     spotter: defaultSpotter(),
     attackerIsSpotting: false,
     selectedTargetId: target.id,
@@ -42,7 +42,7 @@ export const newUnit = (name?: string): UnitState => {
 export const normalizeLance = (lance: LanceState): LanceState => {
   return {
     ...lance,
-    units: lance.units.map((u) => ({ ...u, attacker: { ...defaultAttacker(), ...u.attacker } })),
+    units: lance.units.map((u) => ({ ...u, attacker: createAttacker(u.attacker) })),
   }
 }
 

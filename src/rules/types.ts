@@ -28,6 +28,8 @@ export interface WeaponSpec {
 }
 
 export interface ArmState {
+  /** False for a 'Mech built without this arm. */
+  present: boolean
   shoulderHit: boolean
   upperArmHit: boolean
   lowerArmHit: boolean

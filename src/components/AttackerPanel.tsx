@@ -1,4 +1,4 @@
-import { isLocationDestroyed, isMechDestroyed } from '../rules/destruction'
+import { destroyedReason, hasLocation, isLocationDestroyed, isMechDestroyed } from '../rules/destruction'
 import { LOCATION_NAMES, MOVEMENT_NAMES } from '../rules/tables'
 import type { ArmState, Attacker, LegState, Location, MovementMode } from '../rules/types'
 import { WATER_OPTIONS } from './options'
@@ -11,77 +11,112 @@ interface Props {
 
 const MOVEMENT_OPTIONS = (Object.keys(MOVEMENT_NAMES) as MovementMode[]).map((m) => ({ value: m, label: MOVEMENT_NAMES[m] }))
 
-const ArmDesign = ({ title, arm, onChange }: { title: string; arm: ArmState; onChange: (arm: ArmState) => void }) => {
-  const set = (patch: Partial<ArmState>) => onChange({ ...arm, ...patch })
-  return (
-    <fieldset className="limb">
-      <legend>{title}</legend>
-      <Toggle label="Lower arm actuator" checked={arm.hasLowerArm} onChange={(v) => set({ hasLowerArm: v, hasHand: v && arm.hasHand })} />
-      <Toggle label="Hand actuator" checked={arm.hasHand} onChange={(v) => set({ hasHand: v })} />
-      <Toggle label="Hatchet" checked={arm.hasHatchet} onChange={(v) => set({ hasHatchet: v })} />
-    </fieldset>
-  )
+/** Actuators and hatchet of an arm as text, e.g. "Lower arm, hand". */
+const armSummary = (arm: ArmState): string => {
+  if (!arm.present) return 'None'
+  const parts = [arm.hasLowerArm && 'lower arm', arm.hasHand && 'hand', arm.hasHatchet && 'hatchet'].filter(Boolean).join(', ')
+  return parts ? parts[0].toUpperCase() + parts.slice(1) : 'Upper arm only'
 }
 
-/** Record sheet data that stays fixed during a game. */
-export const MechDataPanel = ({ attacker, onChange }: Props) => {
-  const set = (patch: Partial<Attacker>) => onChange({ ...attacker, ...patch })
-  const hatchets = [attacker.leftArm.hasHatchet && 'LA', attacker.rightArm.hasHatchet && 'RA'].filter(Boolean)
+/** Record sheet data that stays fixed during a game. Edited in the 'Mech dialog. */
+export const MechDataPanel = ({ attacker, onEdit }: { attacker: Attacker; onEdit: () => void }) => {
+  const hatchets = [attacker.leftArm.present && attacker.leftArm.hasHatchet && 'LA', attacker.rightArm.present && attacker.rightArm.hasHatchet && 'RA'].filter(Boolean)
+  const missingArms = [!attacker.leftArm.present && 'LA', !attacker.rightArm.present && 'RA'].filter(Boolean)
+  const rows: [string, string | number][] = [
+    ['Name', attacker.name || 'Unnamed'],
+    ['Gunnery', attacker.gunnery],
+    ['Piloting', attacker.piloting],
+    ['Tonnage', `${attacker.tonnage} t`],
+    ['Heat sinks', attacker.heatSinks],
+    ['Left arm', armSummary(attacker.leftArm)],
+    ['Right arm', armSummary(attacker.rightArm)],
+  ]
   return (
     <CollapsiblePanel
       id="mech-data"
       title="'Mech data"
       className="mech-data"
+      actions={
+        <button type="button" className="small" onClick={onEdit} title="Edit name, skills, tonnage, heat sinks, arms and weapons">
+          Edit
+        </button>
+      }
       summary={
         <>
           G{attacker.gunnery} P{attacker.piloting} · {attacker.tonnage}t · {attacker.heatSinks} HS
           {hatchets.length > 0 && ` · hatchet ${hatchets.join('/')}`}
+          {missingArms.length === 2 ? ' · no arms' : missingArms.length === 1 && ` · no ${missingArms[0]}`}
         </>
       }
     >
-      <label className="field name-field">
-        <span className="field-label">Name</span>
-        <input value={attacker.name} onChange={(e) => set({ name: e.target.value })} />
-      </label>
-      <div className="grid-3">
-        <NumberField label="Gunnery" value={attacker.gunnery} onChange={(v) => set({ gunnery: v })} max={8} />
-        <NumberField label="Piloting" value={attacker.piloting} onChange={(v) => set({ piloting: v })} max={8} />
-        <NumberField label="Tonnage" value={attacker.tonnage} onChange={(v) => set({ tonnage: v })} min={20} max={100} />
-      </div>
-      <div className="grid-3">
-        <NumberField label="Heat sinks" value={attacker.heatSinks} onChange={(v) => set({ heatSinks: v })} max={60} />
-      </div>
-      <div className="limbs">
-        <ArmDesign title="Left arm" arm={attacker.leftArm} onChange={(leftArm) => set({ leftArm })} />
-        <ArmDesign title="Right arm" arm={attacker.rightArm} onChange={(rightArm) => set({ rightArm })} />
-      </div>
+      <dl className="spec-list">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
     </CollapsiblePanel>
   )
 }
 
-const ArmDamage = ({ title, arm, onChange }: { title: string; arm: ArmState; onChange: (arm: ArmState) => void }) => {
-  const set = (patch: Partial<ArmState>) => onChange({ ...arm, ...patch })
+/** Why a limb's damage boxes are unavailable: the 'Mech has no such limb, or it is destroyed. */
+interface LimbLoss {
+  /** Shown after the legend, e.g. "none" or "destroyed". */
+  status: string
+  /** Tooltip, e.g. "Left arm lost with the left torso". */
+  reason: string
+}
+
+const limbLoss = (attacker: Attacker, location: Location): LimbLoss | null => {
+  const reason = destroyedReason(attacker, location)
+  if (!reason) return null
+  return { status: hasLocation(attacker, location) ? 'destroyed' : 'none', reason }
+}
+
+type DamageBox = [label: string, checked: boolean, set: (v: boolean) => void]
+
+/** Damage boxes of one limb, greyed out and empty when the limb is missing or destroyed. */
+const LimbDamage = ({ title, loss, boxes }: { title: string; loss: LimbLoss | null; boxes: DamageBox[] }) => {
   return (
-    <fieldset className="limb">
-      <legend>{title}</legend>
-      <Toggle label="Shoulder hit" checked={arm.shoulderHit} onChange={(v) => set({ shoulderHit: v })} />
-      <Toggle label="Upper arm hit" checked={arm.upperArmHit} onChange={(v) => set({ upperArmHit: v })} />
-      {arm.hasLowerArm && <Toggle label="Lower arm hit" checked={arm.lowerArmHit} onChange={(v) => set({ lowerArmHit: v })} />}
-      {arm.hasHand && <Toggle label="Hand hit" checked={arm.handHit} onChange={(v) => set({ handHit: v })} />}
+    <fieldset className={`limb ${loss ? 'limb-absent' : ''}`} disabled={!!loss} title={loss?.reason}>
+      <legend>
+        {title}
+        {loss && ` (${loss.status})`}
+      </legend>
+      {boxes.map(([label, checked, set]) => (
+        <Toggle key={label} label={label} checked={checked && !loss} onChange={set} disabled={!!loss} />
+      ))}
     </fieldset>
   )
 }
 
-const LegDamage = ({ title, leg, onChange }: { title: string; leg: LegState; onChange: (leg: LegState) => void }) => {
+const ArmDamage = ({ title, arm, loss, onChange }: { title: string; arm: ArmState; loss: LimbLoss | null; onChange: (arm: ArmState) => void }) => {
+  const set = (patch: Partial<ArmState>) => onChange({ ...arm, ...patch })
+  const boxes: DamageBox[] = [
+    ['Shoulder damaged', arm.shoulderHit, (v) => set({ shoulderHit: v })],
+    ['Upper arm damaged', arm.upperArmHit, (v) => set({ upperArmHit: v })],
+  ]
+  // Actuators the 'Mech was built without cannot be damaged.
+  if (arm.hasLowerArm) boxes.push(['Lower arm damaged', arm.lowerArmHit, (v) => set({ lowerArmHit: v })])
+  if (arm.hasHand) boxes.push(['Hand damaged', arm.handHit, (v) => set({ handHit: v })])
+  return <LimbDamage title={title} loss={loss} boxes={boxes} />
+}
+
+const LegDamage = ({ title, leg, loss, onChange }: { title: string; leg: LegState; loss: LimbLoss | null; onChange: (leg: LegState) => void }) => {
   const set = (patch: Partial<LegState>) => onChange({ ...leg, ...patch })
   return (
-    <fieldset className="limb">
-      <legend>{title}</legend>
-      <Toggle label="Hip hit" checked={leg.hipHit} onChange={(v) => set({ hipHit: v })} />
-      <Toggle label="Upper leg hit" checked={leg.upperLegHit} onChange={(v) => set({ upperLegHit: v })} />
-      <Toggle label="Lower leg hit" checked={leg.lowerLegHit} onChange={(v) => set({ lowerLegHit: v })} />
-      <Toggle label="Foot hit" checked={leg.footHit} onChange={(v) => set({ footHit: v })} />
-    </fieldset>
+    <LimbDamage
+      title={title}
+      loss={loss}
+      boxes={[
+        ['Hip damaged', leg.hipHit, (v) => set({ hipHit: v })],
+        ['Upper leg damaged', leg.upperLegHit, (v) => set({ upperLegHit: v })],
+        ['Lower leg damaged', leg.lowerLegHit, (v) => set({ lowerLegHit: v })],
+        ['Foot damaged', leg.footHit, (v) => set({ footHit: v })],
+      ]}
+    />
   )
 }
 
@@ -101,6 +136,12 @@ const DestroyedLocations = ({ attacker, onChange }: { attacker: Attacker; onChan
       <div className="location-grid">
         {LOCATION_GRID.flat().map((loc, i) => {
           if (!loc) return <span key={i} />
+          if (!hasLocation(attacker, loc))
+            return (
+              <button key={loc} type="button" className="location-toggle absent" disabled title={`This 'Mech has no ${LOCATION_NAMES[loc].toLowerCase()}`}>
+                {loc}
+              </button>
+            )
           const direct = lost.includes(loc)
           const implied = !direct && isLocationDestroyed(attacker, loc)
           return (
@@ -131,6 +172,8 @@ const DestroyedLocations = ({ attacker, onChange }: { attacker: Attacker; onChan
 /** Values that change from turn to turn: movement, heat, position and damage. */
 export const AttackerPanel = ({ attacker, onChange }: Props) => {
   const set = (patch: Partial<Attacker>) => onChange({ ...attacker, ...patch })
+  const { leftArm, rightArm } = attacker
+  const anyArm = leftArm.present || rightArm.present
   return (
     <Panel title="This turn" className="attacker">
       {isMechDestroyed(attacker) && (
@@ -159,10 +202,10 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
       <div className="toggles">
         <Toggle label="Prone" checked={attacker.prone} onChange={(v) => set({ prone: v, torsoTwisted: v ? false : attacker.torsoTwisted, armsFlipped: v ? false : attacker.armsFlipped })} />
         <Toggle label="Torso twisted" checked={attacker.torsoTwisted} onChange={(v) => set({ torsoTwisted: v, armsFlipped: v ? false : attacker.armsFlipped, prone: v ? false : attacker.prone })} />
-        <Toggle label="Arms flipped" checked={attacker.armsFlipped} onChange={(v) => set({ armsFlipped: v, torsoTwisted: v ? false : attacker.torsoTwisted, prone: v ? false : attacker.prone })} />
+        <Toggle label="Arms flipped" checked={attacker.armsFlipped && anyArm} disabled={!anyArm} title={anyArm ? undefined : 'This ’Mech has no arms'} onChange={(v) => set({ armsFlipped: v, torsoTwisted: v ? false : attacker.torsoTwisted, prone: v ? false : attacker.prone })} />
         <Toggle label="Holding club" checked={attacker.hasClub} onChange={(v) => set({ hasClub: v })} />
       </div>
-      {attacker.prone && (
+      {attacker.prone && leftArm.present && rightArm.present && (
         <Segmented
           label="Arm propping up the 'Mech (cannot fire)"
           value={attacker.proneBracingArm}
@@ -199,10 +242,10 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
         </summary>
         <DestroyedLocations attacker={attacker} onChange={(destroyedLocations) => set({ destroyedLocations })} />
         <div className="limbs">
-          <ArmDamage title="Left arm" arm={attacker.leftArm} onChange={(leftArm) => set({ leftArm })} />
-          <ArmDamage title="Right arm" arm={attacker.rightArm} onChange={(rightArm) => set({ rightArm })} />
-          <LegDamage title="Left leg" leg={attacker.leftLeg} onChange={(leftLeg) => set({ leftLeg })} />
-          <LegDamage title="Right leg" leg={attacker.rightLeg} onChange={(rightLeg) => set({ rightLeg })} />
+          <ArmDamage title="Left arm" arm={leftArm} loss={limbLoss(attacker, 'LA')} onChange={(leftArm) => set({ leftArm })} />
+          <ArmDamage title="Right arm" arm={rightArm} loss={limbLoss(attacker, 'RA')} onChange={(rightArm) => set({ rightArm })} />
+          <LegDamage title="Left leg" leg={attacker.leftLeg} loss={limbLoss(attacker, 'LL')} onChange={(leftLeg) => set({ leftLeg })} />
+          <LegDamage title="Right leg" leg={attacker.rightLeg} loss={limbLoss(attacker, 'RL')} onChange={(rightLeg) => set({ rightLeg })} />
         </div>
         <Segmented
           label="Engine hits"

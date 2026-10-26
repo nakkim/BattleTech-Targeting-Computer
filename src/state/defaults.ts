@@ -1,6 +1,7 @@
-import type { ArmState, Attacker, LegState, MountedWeapon, Spotter, Target } from '../rules/types'
+import type { ArmState, Attacker, LegState, Location, MountedWeapon, Spotter, Target } from '../rules/types'
 
 export const defaultArm = (): ArmState => ({
+  present: true,
   shoulderHit: false,
   upperArmHit: false,
   lowerArmHit: false,
@@ -17,7 +18,13 @@ export const defaultLeg = (): LegState => ({
   footHit: false,
 })
 
-export const defaultAttacker = (): Attacker => ({
+/** Attacker fields to override. Arm fields are merged into the default arm. */
+export interface AttackerOptions extends Omit<Partial<Attacker>, 'leftArm' | 'rightArm'> {
+  leftArm?: Partial<ArmState>
+  rightArm?: Partial<ArmState>
+}
+
+export const createAttacker = ({ leftArm, rightArm, ...options }: AttackerOptions = {}): Attacker => ({
   name: 'Attacker',
   gunnery: 4,
   piloting: 5,
@@ -31,8 +38,6 @@ export const defaultAttacker = (): Attacker => ({
   armsFlipped: false,
   torsoTwisted: false,
   proneBracingArm: 'LA',
-  leftArm: defaultArm(),
-  rightArm: defaultArm(),
   leftLeg: defaultLeg(),
   rightLeg: defaultLeg(),
   heatSinks: 10,
@@ -40,6 +45,9 @@ export const defaultAttacker = (): Attacker => ({
   engineHits: 0,
   hasClub: false,
   destroyedLocations: [],
+  ...options,
+  leftArm: { ...defaultArm(), ...leftArm },
+  rightArm: { ...defaultArm(), ...rightArm },
 })
 
 let counter = 0
@@ -48,9 +56,9 @@ export const newId = (prefix: string): string => {
   return `${prefix}-${Date.now().toString(36)}-${counter}`
 }
 
-export const defaultTarget = (name = 'Target 1', primary = true): Target => ({
+export const createTarget = (options: Partial<Target> = {}): Target => ({
   id: newId('t'),
-  name,
+  name: 'Target 1',
   range: 4,
   hexesMoved: 0,
   jumped: false,
@@ -64,14 +72,22 @@ export const defaultTarget = (name = 'Target 1', primary = true): Target => ({
   arc: 'front',
   legArc: 'front',
   attackDirection: 'front',
-  primary,
+  primary: true,
   piloting: 5,
   tonnage: 50,
   levelDifference: 0,
+  ...options,
 })
 
 export const defaultSpotter = (): Spotter => ({ movement: 'stationary', attacked: false, prone: false })
 
 export const newWeapon = (weaponKey: string, location: MountedWeapon['location'], targetId: string): MountedWeapon => {
   return { id: newId('w'), weaponKey, location, rear: false, fire: true, targetId, indirect: false, aimedAt: null }
+}
+
+/** Weapons and the locations they are mounted in, as on the record sheet. */
+export type Loadout = [weaponKey: string, location: Location][]
+
+export const mountWeapons = (loadout: Loadout, targetId: string): MountedWeapon[] => {
+  return loadout.map(([weaponKey, location]) => newWeapon(weaponKey, location, targetId))
 }

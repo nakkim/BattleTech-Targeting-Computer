@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { destroyedReason, firingWeapons } from '../rules/destruction'
+import { destroyedReason, firingWeapons, hasLocation } from '../rules/destruction'
 import { AIMED_SHOT_CHANCE, type WeaponAttackResult } from '../rules/weaponAttack'
 import { formatPercent } from '../rules/dice'
-import { isLrm, LOCATION_NAMES, LOCATIONS, MOVEMENT_NAMES, WEAPONS, WEAPONS_BY_KEY } from '../rules/tables'
+import { isLrm, LOCATION_NAMES, LOCATIONS, MOVEMENT_NAMES, WEAPONS_BY_KEY } from '../rules/tables'
 import type { Attacker, Location, MountedWeapon, MovementMode, Spotter, Target } from '../rules/types'
 import { newWeapon } from '../state/defaults'
 import { Messages, ModifierList, TargetNumber } from './Breakdown'
 import { Chevron, Panel, Segmented, Toggle } from './fields'
+import { WeaponPicker } from './WeaponPicker'
 
 interface Props {
   attacker: Attacker
@@ -91,7 +92,7 @@ const WeaponRow = ({
           ))}
         </select>
         {destroyed ? (
-          <span className="idle-label destroyed-label" title="Restore the location under This turn → Critical damage">
+          <span className="idle-label destroyed-label" title="Check 'Mech data and This turn → Critical damage">
             {destroyed}
           </span>
         ) : result && weapon.fire ? (
@@ -182,10 +183,7 @@ const WeaponRow = ({
 
 export const WeaponsPanel = (props: Props) => {
   const { weapons, results, targets, spotter, onChange } = props
-  const [weaponKey, setWeaponKey] = useState('ML')
-  const [location, setLocation] = useState<Location>('RA')
-
-  const add = () => {
+  const add = (weaponKey: string, location: Location) => {
     const primary = targets.find((t) => t.primary) ?? targets[0]
     onChange([...weapons, newWeapon(weaponKey, location, primary.id)])
   }
@@ -197,29 +195,11 @@ export const WeaponsPanel = (props: Props) => {
 
   return (
     <Panel title="Weapon attacks" className="weapons">
-      <div className="add-weapon">
-        <select value={weaponKey} onChange={(e) => setWeaponKey(e.target.value)} aria-label="Weapon" title="Weapon to mount">
-          {(['energy', 'ballistic', 'missile'] as const).map((cat) => (
-            <optgroup key={cat} label={cat[0].toUpperCase() + cat.slice(1)}>
-              {WEAPONS.filter((w) => w.category === cat).map((w) => (
-                <option key={w.key} value={w.key}>
-                  {w.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        <select value={location} onChange={(e) => setLocation(e.target.value as Location)} aria-label="Location" title="Location the weapon is mounted in (sets its firing arcs)">
-          {LOCATIONS.map((l) => (
-            <option key={l} value={l}>
-              {LOCATION_NAMES[l]}
-            </option>
-          ))}
-        </select>
-        <button type="button" onClick={add} title="Add the weapon to this 'Mech's loadout, aimed at the primary target">
-          + Mount weapon
-        </button>
-      </div>
+      <WeaponPicker
+        locations={LOCATIONS.filter((l) => hasLocation(props.attacker, l))}
+        onMount={add}
+        title="Add the weapon to this 'Mech's loadout, aimed at the primary target"
+      />
 
       {props.targetWarnings.length > 0 && (
         <ul className="messages">

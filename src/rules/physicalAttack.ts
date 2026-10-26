@@ -188,20 +188,20 @@ export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAtt
       const arm = armOf(attacker, loc)
       const lost = destroyedReason(attacker, loc)
       if (lost && !isMechDestroyed(attacker)) reasons.push(lost)
-      if (arm.shoulderHit) reasons.push('Shoulder actuator hit')
+      if (arm.shoulderHit) reasons.push('Shoulder actuator damaged')
       if (arm.hasHatchet) reasons.push('Arm carries a hatchet')
       if (firedLocations.has(loc)) reasons.push('Weapons in this arm fired this turn')
       if (target.arc !== 'front' && target.arc !== (loc === 'LA' ? 'left' : 'right')) reasons.push('Target not in forward or matching side arc')
       let halvings = 0
       if (arm.upperArmHit) {
-        modifiers.push({ gator: 'O', label: 'Upper arm actuator hit', value: 2 })
+        modifiers.push({ gator: 'O', label: 'Upper arm actuator damaged', value: 2 })
         halvings++
       }
       if (arm.lowerArmHit || !arm.hasLowerArm) {
-        modifiers.push({ gator: 'O', label: arm.hasLowerArm ? 'Lower arm actuator hit' : 'No lower arm actuator', value: 2 })
+        modifiers.push({ gator: 'O', label: arm.hasLowerArm ? 'Lower arm actuator damaged' : 'No lower arm actuator', value: 2 })
         halvings++
       }
-      if (arm.handHit || !arm.hasHand) modifiers.push({ gator: 'O', label: arm.hasHand ? 'Hand actuator hit' : 'No hand actuator', value: 1 })
+      if (arm.handHit || !arm.hasHand) modifiers.push({ gator: 'O', label: arm.hasHand ? 'Hand actuator damaged' : 'No hand actuator', value: 1 })
       damage = Math.max(1, halve(Math.ceil(attacker.tonnage / 10), halvings))
       notes.push('Two punches may target different ’Mechs with no secondary target modifier')
       break
@@ -210,19 +210,19 @@ export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAtt
       const loc = type === 'kickLL' ? 'LL' : 'RL'
       const leg = legOf(attacker, loc)
       if (legsLost.length > 0 && !isMechDestroyed(attacker)) reasons.push('A leg is destroyed: no kicking attacks')
-      if (attacker.leftLeg.hipHit || attacker.rightLeg.hipHit) reasons.push('Hip actuator hit: no kicking attacks')
+      if (attacker.leftLeg.hipHit || attacker.rightLeg.hipHit) reasons.push('Hip actuator damaged: no kicking attacks')
       if (firedLocations.has(loc)) reasons.push('Weapons in this leg fired this turn')
       if (target.legArc !== 'front') reasons.push('Target not in forward arc of the feet')
       let halvings = 0
       if (leg.upperLegHit) {
-        modifiers.push({ gator: 'O', label: 'Upper leg actuator hit', value: 2 })
+        modifiers.push({ gator: 'O', label: 'Upper leg actuator damaged', value: 2 })
         halvings++
       }
       if (leg.lowerLegHit) {
-        modifiers.push({ gator: 'O', label: 'Lower leg actuator hit', value: 2 })
+        modifiers.push({ gator: 'O', label: 'Lower leg actuator damaged', value: 2 })
         halvings++
       }
-      if (leg.footHit) modifiers.push({ gator: 'O', label: 'Foot actuator hit', value: 1 })
+      if (leg.footHit) modifiers.push({ gator: 'O', label: 'Foot actuator damaged', value: 1 })
       damage = halve(Math.floor(attacker.tonnage / 5), halvings)
       notes.push('Target must make a PSR if kicked; attacker must make a PSR on a miss')
       break
@@ -233,12 +233,12 @@ export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAtt
       const lost = destroyedReason(attacker, loc)
       if (lost && !isMechDestroyed(attacker)) reasons.push(lost)
       if (!arm.hasHatchet) reasons.push('No hatchet in this arm')
-      if (arm.shoulderHit) reasons.push('Shoulder actuator hit')
-      if (arm.handHit) reasons.push('Hand actuator hit')
+      if (arm.shoulderHit) reasons.push('Shoulder actuator damaged')
+      if (arm.handHit) reasons.push('Hand actuator damaged')
       if (firedLocations.has(loc)) reasons.push('Weapons in this arm fired this turn')
       if (target.arc !== 'front' && target.arc !== (loc === 'LA' ? 'left' : 'right')) reasons.push('Target not in forward or matching side arc')
-      if (arm.upperArmHit) modifiers.push({ gator: 'O', label: 'Upper arm actuator hit', value: 2 })
-      if (arm.lowerArmHit) modifiers.push({ gator: 'O', label: 'Lower arm actuator hit', value: 2 })
+      if (arm.upperArmHit) modifiers.push({ gator: 'O', label: 'Upper arm actuator damaged', value: 2 })
+      if (arm.lowerArmHit) modifiers.push({ gator: 'O', label: 'Lower arm actuator damaged', value: 2 })
       damage = Math.floor(attacker.tonnage / 5)
       break
     }
@@ -246,13 +246,13 @@ export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAtt
       if (armsLost.length > 0 && !isMechDestroyed(attacker)) reasons.push('Needs both arms')
       if (!attacker.hasClub) reasons.push('No club in hand')
       if (firedArm) reasons.push('Arm-mounted weapons fired this turn')
-      if (attacker.leftArm.shoulderHit || attacker.rightArm.shoulderHit) reasons.push('Shoulder actuator hit')
+      if (attacker.leftArm.shoulderHit || attacker.rightArm.shoulderHit) reasons.push('Shoulder actuator damaged')
       const handsOk = [attacker.leftArm, attacker.rightArm].every((a) => a.hasHand && !a.handHit)
       if (!handsOk) reasons.push('Needs two undamaged hand actuators')
       if (target.arc !== 'front') reasons.push('Target not in forward arc')
       for (const [side, arm] of [['Left', attacker.leftArm], ['Right', attacker.rightArm]] as const) {
-        if (arm.upperArmHit) modifiers.push({ gator: 'O', label: `${side} upper arm actuator hit`, value: 2 })
-        if (arm.lowerArmHit) modifiers.push({ gator: 'O', label: `${side} lower arm actuator hit`, value: 2 })
+        if (arm.upperArmHit) modifiers.push({ gator: 'O', label: `${side} upper arm actuator damaged`, value: 2 })
+        if (arm.lowerArmHit) modifiers.push({ gator: 'O', label: `${side} lower arm actuator damaged`, value: 2 })
       }
       damage = Math.floor(attacker.tonnage / 5)
       break
@@ -264,7 +264,7 @@ export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAtt
       if (target.levelDifference !== 0) reasons.push('Target must be at the same level')
       if (target.legArc !== 'front') reasons.push('Target must be directly in front of the feet')
       for (const [side, arm] of [['Left', attacker.leftArm], ['Right', attacker.rightArm]] as const) {
-        if (arm.shoulderHit) modifiers.push({ gator: 'O', label: `${side} shoulder hit`, value: 2 })
+        if (arm.shoulderHit) modifiers.push({ gator: 'O', label: `${side} shoulder damaged`, value: 2 })
       }
       notes.push('No damage: target is displaced and must make a PSR')
       break

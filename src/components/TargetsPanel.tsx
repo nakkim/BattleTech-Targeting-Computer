@@ -2,7 +2,7 @@ import { useState } from "react";
 import { targetMovementModifier } from "../rules/tables";
 import type { Attacker, MountedWeapon, Target } from "../rules/types";
 import { woodsModifier } from "../rules/weaponAttack";
-import { defaultTarget } from "../state/defaults";
+import { createTarget } from "../state/defaults";
 import { ArcDiagram } from "./diagrams/ArcDiagram";
 import { AttackDirectionDiagram } from "./diagrams/AttackDirectionDiagram";
 import { RangeDiagram } from "./diagrams/RangeDiagram";
@@ -56,7 +56,10 @@ export const TargetsPanel = ({
     onChange(targets.map((t) => ({ ...t, primary: t.id === target.id })));
 
   const add = () => {
-    const t = defaultTarget(`Target ${targets.length + 1}`, false);
+    const t = createTarget({
+      name: `Target ${targets.length + 1}`,
+      primary: false,
+    });
     onChange([...targets, t]);
     onSelect(t.id);
   };

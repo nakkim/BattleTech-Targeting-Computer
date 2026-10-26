@@ -7,15 +7,25 @@ export const isMechDestroyed = (attacker: Pick<Attacker, 'destroyedLocations'>):
   return lost.includes('HD') || lost.includes('CT')
 }
 
+/** Fields that decide whether a location is still there. */
+type LocationState = Pick<Attacker, 'destroyedLocations' | 'leftArm' | 'rightArm'>
+
+/** Whether the 'Mech was built with the location. Arms are optional; every other location is always there. */
+export const hasLocation = (attacker: Pick<Attacker, 'leftArm' | 'rightArm'>, location: Location): boolean => {
+  if (location === 'LA') return attacker.leftArm.present
+  if (location === 'RA') return attacker.rightArm.present
+  return true
+}
+
 /** The location that takes an arm with it when destroyed. */
 const ARM_TORSO: Partial<Record<Location, Location>> = { LA: 'LT', RA: 'RT' }
 
 /**
- * Whether a location is gone: destroyed itself, blown off with its side torso,
- * or the whole 'Mech is destroyed.
+ * Whether a location is gone: never built, destroyed itself, blown off with
+ * its side torso, or the whole 'Mech is destroyed.
  */
-export const isLocationDestroyed = (attacker: Pick<Attacker, 'destroyedLocations'>, location: Location): boolean => {
-  if (isMechDestroyed(attacker)) return true
+export const isLocationDestroyed = (attacker: LocationState, location: Location): boolean => {
+  if (isMechDestroyed(attacker) || !hasLocation(attacker, location)) return true
   const lost = attacker.destroyedLocations
   if (lost.includes(location)) return true
   const torso = ARM_TORSO[location]
@@ -23,8 +33,9 @@ export const isLocationDestroyed = (attacker: Pick<Attacker, 'destroyedLocations
 }
 
 /** Human-readable reason a location is unusable, or null when it is intact. */
-export const destroyedReason = (attacker: Pick<Attacker, 'destroyedLocations'>, location: Location): string | null => {
+export const destroyedReason = (attacker: LocationState, location: Location): string | null => {
   if (isMechDestroyed(attacker)) return '’Mech destroyed'
+  if (!hasLocation(attacker, location)) return `No ${LOCATION_NAMES[location].toLowerCase()}`
   if (attacker.destroyedLocations.includes(location)) return `${LOCATION_NAMES[location]} destroyed`
   const torso = ARM_TORSO[location]
   if (torso && attacker.destroyedLocations.includes(torso)) return `${LOCATION_NAMES[location]} lost with the ${LOCATION_NAMES[torso].toLowerCase()}`
@@ -32,6 +43,6 @@ export const destroyedReason = (attacker: Pick<Attacker, 'destroyedLocations'>, 
 }
 
 /** Weapons that are declared to fire and still have an intact location. */
-export const firingWeapons = (attacker: Pick<Attacker, 'destroyedLocations'>, weapons: MountedWeapon[]): MountedWeapon[] => {
+export const firingWeapons = (attacker: LocationState, weapons: MountedWeapon[]): MountedWeapon[] => {
   return weapons.filter((w) => w.fire && !isLocationDestroyed(attacker, w.location))
 }

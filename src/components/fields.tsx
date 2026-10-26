@@ -106,12 +106,13 @@ interface ToggleProps {
   onChange: (checked: boolean) => void
   /** Tooltip explaining the option. */
   title?: string
+  disabled?: boolean
 }
 
-export const Toggle = ({ label, checked, onChange, title }: ToggleProps) => {
+export const Toggle = ({ label, checked, onChange, title, disabled }: ToggleProps) => {
   return (
-    <label className="toggle" title={title}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className={`toggle ${disabled ? 'toggle-disabled' : ''}`} title={title}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>
   )
@@ -124,10 +125,12 @@ interface CollapsiblePanelProps {
   /** Shown in the header while collapsed. */
   summary?: ReactNode
   children: ReactNode
+  /** Buttons shown at the right end of the header. */
+  actions?: ReactNode
   className?: string
 }
 
-export const CollapsiblePanel = ({ id, title, summary, children, className = '' }: CollapsiblePanelProps) => {
+export const CollapsiblePanel = ({ id, title, summary, children, actions, className = '' }: CollapsiblePanelProps) => {
   const [collapsed, setCollapsed] = usePersistentState(`btc-collapsed-${id}`, () => false)
   return (
     <section className={`panel collapsible ${collapsed ? 'collapsed' : ''} ${className}`}>
@@ -137,6 +140,7 @@ export const CollapsiblePanel = ({ id, title, summary, children, className = '' 
           <h2>{title}</h2>
         </button>
         {collapsed && summary && <span className="panel-summary">{summary}</span>}
+        {actions}
       </header>
       {!collapsed && <div className="panel-body">{children}</div>}
     </section>

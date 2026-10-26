@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultArm, defaultAttacker, defaultSpotter, defaultTarget, newWeapon } from '../state/defaults'
+import { createAttacker, createTarget, defaultSpotter, newWeapon } from '../state/defaults'
 import { chanceToHit } from './dice'
 import { projectHeat } from './heat'
 import { resolvePhysicalAttack } from './physicalAttack'
@@ -7,8 +7,8 @@ import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationCha
 import type { Attacker, Target } from './types'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
 
-const attacker = (over: Partial<Attacker> = {}): Attacker => ({ ...defaultAttacker(), ...over })
-const target = (over: Partial<Target> = {}): Target => ({ ...defaultTarget(), ...over })
+const attacker = createAttacker
+const target = createTarget
 
 const weaponTn = (a: Attacker, t: Target, key: string, location: 'RA' | 'LA' | 'RT' | 'CT' = 'RT') => {
   const w = newWeapon(key, location, t.id)
@@ -88,9 +88,9 @@ describe('weapon attacks (rulebook p. 18 examples)', () => {
     expect(weaponTn(attacker(), target({ primary: false, arc: 'right', range: 3 }), 'ML', 'RA').targetNumber).toBe(4 + 2)
   })
   it('arm damage and heat', () => {
-    const a = attacker({ heat: 13, rightArm: { ...defaultArm(), upperArmHit: true, lowerArmHit: true } })
+    const a = attacker({ heat: 13, rightArm: { upperArmHit: true, lowerArmHit: true } })
     expect(weaponTn(a, target({ range: 3 }), 'ML', 'RA').targetNumber).toBe(4 + 2 + 2)
-    const s = attacker({ rightArm: { ...defaultArm(), shoulderHit: true, upperArmHit: true } })
+    const s = attacker({ rightArm: { shoulderHit: true, upperArmHit: true } })
     expect(weaponTn(s, target({ range: 3 }), 'ML', 'RA').targetNumber).toBe(4 + 4)
   })
   it('aimed shots at immobile targets', () => {
@@ -116,7 +116,7 @@ describe('weapon attacks (rulebook p. 18 examples)', () => {
 
 describe('physical attacks (rulebook examples)', () => {
   it('Catapult punch: TN 9, 3 damage', () => {
-    const a = attacker({ piloting: 5, tonnage: 65, rightArm: { ...defaultArm(), hasLowerArm: false, hasHand: false } })
+    const a = attacker({ piloting: 5, tonnage: 65, rightArm: { hasLowerArm: false, hasHand: false } })
     const r = resolvePhysicalAttack('punchRA', { attacker: a, target: target({ range: 1, terrain: 'light' }), firedLocations: new Set(), hatchetTable: 'standard' })
     expect(r.allowed).toBe(true)
     expect(r.targetNumber).toBe(9)
@@ -167,6 +167,29 @@ describe('Gauss Rifle', () => {
     expect(weaponTn(attacker(), t, 'GAUSS').targetNumber).toBe(4 + 2)
     expect(weaponTn(attacker(), { ...t, range: 15 }, 'GAUSS').targetNumber).toBe(4 + 2)
     expect(weaponTn(attacker(), { ...t, range: 23 }, 'GAUSS').allowed).toBe(false)
+  })
+})
+
+describe('missing arms', () => {
+  const t = target({ range: 1 })
+  const armless = attacker({ leftArm: { present: false }, rightArm: { present: false } })
+  it('arm weapons cannot fire, torso weapons can', () => {
+    const arm = weaponTn(armless, t, 'ML', 'LA')
+    expect(arm.allowed).toBe(false)
+    expect(arm.reasons[0]).toBe('No left arm: weapon cannot fire')
+    expect(weaponTn(armless, t, 'ML', 'RT').allowed).toBe(true)
+  })
+  it('no punches or pushes without arms, but kicks work', () => {
+    const physical = (type: Parameters<typeof resolvePhysicalAttack>[0]) =>
+      resolvePhysicalAttack(type, { attacker: armless, target: t, firedLocations: new Set(), hatchetTable: 'standard' }).allowed
+    expect(physical('punchLA')).toBe(false)
+    expect(physical('push')).toBe(false)
+    expect(physical('kickLL')).toBe(true)
+  })
+  it('one missing arm leaves the other usable', () => {
+    const oneArm = attacker({ leftArm: { present: false } })
+    expect(weaponTn(oneArm, t, 'ML', 'RA').allowed).toBe(true)
+    expect(weaponTn({ ...oneArm, prone: true, proneBracingArm: 'RA' }, t, 'ML', 'RT').allowed).toBe(false)
   })
 })
 

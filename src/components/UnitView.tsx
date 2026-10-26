@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { projectHeat } from '../rules/heat'
 import { PHYSICAL_ATTACK_TYPES, resolvePhysicalAttack } from '../rules/physicalAttack'
 import type { Location, Target } from '../rules/types'
@@ -8,6 +8,7 @@ import type { UnitState } from '../state/unit'
 import { AttackerPanel, MechDataPanel } from './AttackerPanel'
 import { HeatPanel } from './HeatPanel'
 import { HitLocationPanel } from './HitLocationPanel'
+import { MechDialog } from './MechDialog'
 import { PhysicalPanel } from './PhysicalPanel'
 import { TargetDataPanel, TargetsPanel } from './TargetsPanel'
 import { WeaponsPanel } from './WeaponsPanel'
@@ -20,6 +21,7 @@ interface Props {
 export const UnitView = ({ unit, onChange }: Props) => {
   const set = (patch: Partial<UnitState>) => onChange((u) => ({ ...u, ...patch }))
   const { attacker, targets, weapons, spotter } = unit
+  const [editing, setEditing] = useState(false)
 
   const selectedTarget = targets.find((t) => t.id === unit.selectedTargetId) ?? targets[0]
   const physicalTarget = targets.find((t) => t.id === unit.physicalTargetId) ?? targets[0]
@@ -60,7 +62,18 @@ export const UnitView = ({ unit, onChange }: Props) => {
   return (
     <main className="layout">
       <div className="col col-setup">
-        <MechDataPanel attacker={attacker} onChange={(a) => set({ attacker: a })} />
+        <MechDataPanel attacker={attacker} onEdit={() => setEditing(true)} />
+        {editing && (
+          <MechDialog
+            title="Edit 'Mech"
+            submitLabel="Save"
+            attacker={attacker}
+            weapons={weapons}
+            targetId={(targets.find((t) => t.primary) ?? targets[0]).id}
+            onSave={(a, w) => set({ attacker: a, weapons: w })}
+            onClose={() => setEditing(false)}
+          />
+        )}
         <AttackerPanel attacker={attacker} onChange={(a) => set({ attacker: a })} />
         <TargetsPanel
           targets={targets}

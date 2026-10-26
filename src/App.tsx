@@ -1,9 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { MechDialog } from './components/MechDialog'
 import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
-import { newId } from './state/defaults'
+import { createAttacker, mountWeapons, newId } from './state/defaults'
+import { HIGHLANDER_HGN_732 } from './state/presets'
 import { advanceTurn, initialLance, newUnit, normalizeLance, type LanceState, type UnitState } from './state/unit'
 import { usePersistentState } from './state/usePersistentState'
+import type { Attacker, MountedWeapon } from './rules/types'
 import './App.css'
 
 const App = () => {
@@ -15,8 +18,9 @@ const App = () => {
   const updateActive = (update: (unit: UnitState) => UnitState) =>
     updateLance((l) => ({ ...l, units: l.units.map((u) => (u.id === active.id ? update(u) : u)) }))
 
-  const add = () => {
-    const unit = newUnit(`Highlander HGN-732 #${lance.units.length + 1}`)
+  const [adding, setAdding] = useState(false)
+  const add = (attacker: Attacker, weapons: MountedWeapon[]) => {
+    const unit = newUnit({ attacker, weapons: weapons.map((w) => [w.weaponKey, w.location]) })
     updateLance((l) => ({ units: [...l.units, unit], activeUnitId: unit.id }))
   }
 
@@ -72,10 +76,22 @@ const App = () => {
         units={lance.units}
         activeId={active.id}
         onSelect={(id) => updateLance((l) => ({ ...l, activeUnitId: id }))}
-        onAdd={add}
+        onAdd={() => setAdding(true)}
         onDuplicate={duplicate}
         onRemove={remove}
       />
+
+      {adding && (
+        <MechDialog
+          title="Add 'Mech to lance"
+          submitLabel="Add 'Mech"
+          attacker={createAttacker({ ...HIGHLANDER_HGN_732.attacker, name: `Highlander HGN-732 #${lance.units.length + 1}` })}
+          weapons={mountWeapons(HIGHLANDER_HGN_732.weapons, '')}
+          targetId=""
+          onSave={add}
+          onClose={() => setAdding(false)}
+        />
+      )}
 
       <UnitView key={active.id} unit={active} onChange={updateActive} />
 

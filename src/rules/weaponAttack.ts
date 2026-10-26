@@ -73,10 +73,10 @@ export const hasPartialCover = (target: Target): boolean => {
 
 /** Damage modifier for weapons in a damaged arm (p. 19). */
 export const armDamageModifier = (arm: ArmState): Modifier[] => {
-  if (arm.shoulderHit) return [{ gator: 'O', label: 'Shoulder hit', value: 4 }]
+  if (arm.shoulderHit) return [{ gator: 'O', label: 'Shoulder damaged', value: 4 }]
   const mods: Modifier[] = []
-  if (arm.upperArmHit) mods.push({ gator: 'O', label: 'Upper arm actuator hit', value: 1 })
-  if (arm.lowerArmHit && arm.hasLowerArm) mods.push({ gator: 'O', label: 'Lower arm actuator hit', value: 1 })
+  if (arm.upperArmHit) mods.push({ gator: 'O', label: 'Upper arm actuator damaged', value: 1 })
+  if (arm.lowerArmHit && arm.hasLowerArm) mods.push({ gator: 'O', label: 'Lower arm actuator damaged', value: 1 })
   return mods
 }
 
@@ -162,7 +162,7 @@ export const resolveWeaponAttack = (weapon: MountedWeapon, ctx: WeaponAttackCont
   if (lost) reasons.push(`${lost}: weapon cannot fire`)
   if (attacker.sensorHits >= 2) reasons.push('Two sensor hits: cannot fire weapons')
   if (attacker.prone && (isLocationDestroyed(attacker, 'LA') || isLocationDestroyed(attacker, 'RA')))
-    reasons.push('Prone with a destroyed arm: no weapons can fire')
+    reasons.push('Prone without both arms: no weapons can fire')
   if (attacker.prone) {
     if (isLeg(weapon.location)) reasons.push('Prone: leg-mounted weapons cannot fire')
     if (weapon.location === attacker.proneBracingArm) reasons.push('Prone: this arm supports the ’Mech and cannot fire')
