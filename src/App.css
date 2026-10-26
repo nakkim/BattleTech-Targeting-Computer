@@ -1039,6 +1039,14 @@ table.cluster tbody th {
   text-align: center;
 }
 
+.app-footer p {
+  margin-top: 6px;
+}
+
+.app-footer a {
+  color: var(--accent);
+}
+
 /* Lance tabs */
 .lance-tabs {
   display: flex;

@@ -102,6 +102,11 @@ const App = () => {
 
       <footer className="app-footer">
         Roll 2D6 equal to or above the Target Number. TN ≤ 2 always hits; TN &gt; 12 always misses. Rules per the BattleTech box set rulebook.
+        <p>
+          <a href="https://github.com/nakkim/BattleTech-Targeting-Computer" target="_blank" rel="noreferrer">
+            Source on GitHub
+          </a>
+        </p>
       </footer>
     </div>
   )
