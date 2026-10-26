@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Switch } from './components/fields'
 import { MechDialog } from './components/MechDialog'
 import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
@@ -15,6 +16,13 @@ const MODES: { value: AppMode; label: string; title: string }[] = [
   { value: 'plain', label: 'Plain 2D6', title: 'Only hit or miss on 2D6: ammo, armor and internal structure are not tracked' },
 ]
 
+type Theme = 'light' | 'dark'
+
+const THEMES: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
+
 const App = () => {
   const [storedLance, setLance] = usePersistentState<LanceState>('btc-lance-v1', initialLance)
   const lance = useMemo(() => normalizeLance(storedLance), [storedLance])
@@ -25,6 +33,11 @@ const App = () => {
     updateLance((l) => ({ ...l, units: l.units.map((u) => (u.id === active.id ? update(u) : u)) }))
 
   const [mode, setMode] = usePersistentState<AppMode>('btc-mode', () => 'tracking')
+  // index.html applies the saved theme before the first paint; this keeps it in sync.
+  const [theme, setTheme] = usePersistentState<Theme>('btc-theme', () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'))
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
   const [adding, setAdding] = useState(false)
   const add = (attacker: Attacker, weapons: MountedWeapon[]) => {
     const unit = newUnit({ attacker, weapons: weapons.map((w) => [w.weaponKey, w.location]) })
@@ -71,13 +84,8 @@ const App = () => {
           <p className="subtitle">BattleTech: A Game of Armored Combat · attack phase calculator</p>
         </div>
         <div className="header-actions">
-          <div className="segmented mode-switch" role="radiogroup" aria-label="Mode">
-            {MODES.map((m) => (
-              <button key={m.value} type="button" role="radio" aria-checked={mode === m.value} className={mode === m.value ? 'active' : ''} onClick={() => setMode(m.value)} title={m.title}>
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <Switch label="Mode" value={mode} options={MODES} onChange={setMode} />
+          <Switch label="Theme" value={theme} options={THEMES} onChange={setTheme} />
           <div className="turn-control">
             <button type="button" onClick={newTurn} title={`For every 'Mech: clear movement, apply projected heat${mode === 'tracking' ? ', spend ammo' : ''}, reset weapon fire`}>
               Next turn

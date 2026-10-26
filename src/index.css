@@ -1,10 +1,20 @@
 :root {
-  --bg: #0b0f0d;
-  --surface: #121915;
-  --surface-2: #19221d;
-  --border: #26342c;
-  --text: #cfe0d4;
-  --text-dim: #7f9488;
+  --bg: #0d0e0f;
+  --surface: #151618;
+  --surface-2: #1c1d20;
+  --border: #2c2e32;
+  --text: #d6d7da;
+  --text-dim: #8a8d93;
+  /* Neutral highlight for headings, active tabs and bars. */
+  --ink: #f2f3f5;
+  --ink-dim: rgba(242, 243, 245, 0.1);
+  /* Buttons and selected options. */
+  --primary: #e4e6e9;
+  --primary-hover: #c9ccd1;
+  --primary-text: #151618;
+  --selected-bg: #2c2f33;
+  --selected-fg: #f2f3f5;
+  /* Green marks good results only. */
   --accent: #4ade80;
   --accent-dim: rgba(74, 222, 128, 0.14);
   --amber: #fbbf24;
@@ -22,23 +32,28 @@
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #eef2ef;
-    --surface: #ffffff;
-    --surface-2: #f4f7f5;
-    --border: #d3ddd6;
-    --text: #17231c;
-    --text-dim: #5d6f64;
-    --accent: #15803d;
-    --accent-dim: rgba(21, 128, 61, 0.1);
-    --amber: #b45309;
-    --red: #dc2626;
-    --red-dim: rgba(220, 38, 38, 0.08);
-    --amber-dim: rgba(180, 83, 9, 0.1);
-    --blue: #2563eb;
-    color-scheme: light;
-  }
+:root[data-theme='light'] {
+  --bg: #f1f1f2;
+  --surface: #ffffff;
+  --surface-2: #f6f6f7;
+  --border: #d9dadd;
+  --text: #1b1c1e;
+  --text-dim: #63666c;
+  --ink: #0f1011;
+  --ink-dim: rgba(15, 16, 17, 0.07);
+  --primary: #1c1e21;
+  --primary-hover: #33373c;
+  --primary-text: #ffffff;
+  --selected-bg: #e4e6e9;
+  --selected-fg: #1c1e21;
+  --accent: #15803d;
+  --accent-dim: rgba(21, 128, 61, 0.1);
+  --amber: #b45309;
+  --red: #dc2626;
+  --red-dim: rgba(220, 38, 38, 0.08);
+  --amber-dim: rgba(180, 83, 9, 0.1);
+  --blue: #2563eb;
+  color-scheme: light;
 }
 
 *,

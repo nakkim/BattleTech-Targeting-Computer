@@ -23,7 +23,7 @@
   font-size: 1.4rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .subtitle {
@@ -35,7 +35,7 @@
 .crosshair {
   width: 22px;
   height: 22px;
-  border: 2px solid var(--accent);
+  border: 2px solid var(--ink);
   border-radius: 50%;
   position: relative;
 }
@@ -44,7 +44,7 @@
 .crosshair::after {
   content: '';
   position: absolute;
-  background: var(--accent);
+  background: var(--ink);
 }
 
 .crosshair::before {
@@ -88,17 +88,17 @@
 /* Buttons */
 button {
   cursor: pointer;
-  border: 1px solid var(--accent);
-  background: var(--accent-dim);
-  color: var(--accent);
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-text);
   border-radius: 6px;
   padding: 6px 12px;
   font-weight: 600;
 }
 
 button:hover {
-  background: var(--accent);
-  color: var(--bg);
+  background: var(--primary-hover);
+  color: var(--primary-text);
 }
 
 button.ghost {
@@ -131,7 +131,7 @@ button.danger:hover {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ink);
   outline-offset: 1px;
 }
 
@@ -183,7 +183,7 @@ select:focus-visible {
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .panel-body {
@@ -266,8 +266,8 @@ select {
 }
 
 .stepper button:hover {
-  background: var(--accent-dim);
-  color: var(--accent);
+  background: var(--selected-bg);
+  color: var(--selected-fg);
 }
 
 .grid-2,
@@ -318,8 +318,9 @@ select {
 }
 
 .segmented button.active {
-  background: var(--accent-dim);
-  color: var(--accent);
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+  box-shadow: inset 0 0 0 1px var(--selected-fg);
   font-weight: 700;
 }
 
@@ -361,7 +362,7 @@ select {
 }
 
 input[type='checkbox'] {
-  accent-color: var(--accent);
+  accent-color: var(--ink);
   width: 16px;
   height: 16px;
   margin: 0;
@@ -447,9 +448,9 @@ fieldset.limb .toggle {
 }
 
 .tabs button.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
+  border-color: var(--selected-fg);
+  color: var(--selected-fg);
+  background: var(--selected-bg);
 }
 
 .primary-dot {
@@ -548,7 +549,7 @@ fieldset.limb .toggle {
 
 .weapon-name:hover {
   background: none;
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .weapon-name strong {
@@ -929,7 +930,7 @@ fieldset.limb .toggle {
 .bar span {
   display: block;
   height: 100%;
-  background: var(--accent);
+  background: var(--ink);
   border-radius: 4px;
 }
 
@@ -957,7 +958,7 @@ table.cluster td {
 }
 
 table.cluster thead th {
-  color: var(--accent);
+  color: var(--ink);
 }
 
 table.cluster tbody th {
@@ -1008,7 +1009,7 @@ table.cluster tbody th {
 
 .heat-total {
   font-weight: 700;
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .heat-effects {
@@ -1045,7 +1046,7 @@ table.cluster tbody th {
 }
 
 .app-footer a {
-  color: var(--accent);
+  color: var(--ink);
 }
 
 /* Lance tabs */
@@ -1081,8 +1082,8 @@ table.cluster tbody th {
 
 .lance-tab.active {
   background: var(--surface);
-  border-color: var(--accent);
-  box-shadow: inset 0 2px 0 var(--accent);
+  border-color: var(--ink);
+  box-shadow: inset 0 2px 0 var(--ink);
 }
 
 .lance-tab-main {
@@ -1105,7 +1106,7 @@ table.cluster tbody th {
 }
 
 .lance-tab.active .lance-tab-main {
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .lance-tab-name {
@@ -1156,13 +1157,13 @@ table.cluster tbody th {
   border: none;
   background: none;
   padding: 0;
-  color: var(--accent);
+  color: var(--ink);
   min-width: 0;
 }
 
 .collapse-toggle:hover {
   background: none;
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .ammo legend .collapse-toggle {
@@ -1203,7 +1204,7 @@ table.cluster tbody th {
 .tab-rename {
   width: 10em;
   padding: 5px 10px !important;
-  border-color: var(--accent) !important;
+  border-color: var(--ink) !important;
   font-weight: 500;
 }
 
@@ -1216,7 +1217,7 @@ table.cluster tbody th {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface-2);
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .collapse-toggle .caret svg {
@@ -1225,8 +1226,8 @@ table.cluster tbody th {
 }
 
 .collapse-toggle:hover .caret {
-  border-color: var(--accent);
-  background: var(--accent-dim);
+  border-color: var(--ink);
+  background: var(--ink-dim);
 }
 
 /* Info button and dialog */
@@ -1244,9 +1245,9 @@ table.cluster tbody th {
   height: 18px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid var(--accent);
-  background: var(--accent-dim);
-  color: var(--accent);
+  border: 1px solid var(--ink);
+  background: var(--ink-dim);
+  color: var(--ink);
   font-family: Georgia, serif;
   font-style: italic;
   font-weight: 700;
@@ -1284,7 +1285,7 @@ table.cluster tbody th {
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .info-dialog-body {
@@ -1355,11 +1356,9 @@ table.cluster tbody th {
   gap: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .diagram {
-    --hex-empty: #4a4036;
-    --hex-stroke: rgba(0, 0, 0, 0.6);
-  }
+:root:not([data-theme='light']) .diagram {
+  --hex-empty: #4a4036;
+  --hex-stroke: rgba(0, 0, 0, 0.6);
 }
 
 .diagram .hex {
@@ -1455,7 +1454,7 @@ table.cluster tbody th {
 }
 
 .arc-legend li.selected {
-  background: var(--accent-dim);
+  background: var(--ink-dim);
 }
 
 .arc-legend .swatch {
@@ -1524,12 +1523,10 @@ table.cluster tbody th {
   --mech: #5a5f66;
 }
 
-@media (prefers-color-scheme: dark) {
-  .diagram {
-    --terrain: #6b5d43;
-    --ground: #5c4a32;
-    --mech: #9aa1a8;
-  }
+:root:not([data-theme='light']) .diagram {
+  --terrain: #6b5d43;
+  --ground: #5c4a32;
+  --mech: #9aa1a8;
 }
 
 .terrain-hex {

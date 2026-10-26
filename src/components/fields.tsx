@@ -100,6 +100,27 @@ export const Segmented = <T extends string | number>({ label, value, options, on
   )
 }
 
+interface SwitchProps<T extends string> {
+  /** Accessible name of the group, e.g. "Mode". */
+  label: string
+  value: T
+  options: { value: T; label: string; title?: string }[]
+  onChange: (value: T) => void
+}
+
+/** Compact segmented switch without a visible label, e.g. in the header. */
+export const Switch = <T extends string>({ label, value, options, onChange }: SwitchProps<T>) => {
+  return (
+    <div className="segmented header-switch" role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.value} type="button" role="radio" aria-checked={o.value === value} className={o.value === value ? 'active' : ''} onClick={() => onChange(o.value)} title={o.title}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 interface ToggleProps {
   label: ReactNode
   checked: boolean
