@@ -129,6 +129,8 @@ export interface WeaponAttackContext {
   spotter: Spotter
   /** True when this attacker spots for an indirect attack this turn (p. 21). */
   attackerIsSpotting: boolean
+  /** True when the weapon has no shot left this turn (see drawAmmo). */
+  outOfAmmo?: boolean
 }
 
 export interface WeaponAttackResult extends AttackResult {
@@ -160,6 +162,7 @@ export const resolveWeaponAttack = (weapon: MountedWeapon, ctx: WeaponAttackCont
   // Ability to fire at all.
   const lost = destroyedReason(attacker, weapon.location)
   if (lost) reasons.push(`${lost}: weapon cannot fire`)
+  if (ctx.outOfAmmo) reasons.push('Out of ammo')
   if (attacker.sensorHits >= 2) reasons.push('Two sensor hits: cannot fire weapons')
   if (attacker.prone && (isLocationDestroyed(attacker, 'LA') || isLocationDestroyed(attacker, 'RA')))
     reasons.push('Prone without both arms: no weapons can fire')

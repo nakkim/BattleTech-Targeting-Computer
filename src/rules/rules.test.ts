@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { createAttacker, createTarget, defaultSpotter, newWeapon } from '../state/defaults'
+import { createAttacker, createTarget, defaultSpotter, newAmmoBin, newWeapon } from '../state/defaults'
+import { availableBins, drawAmmo, explosionDamage, firingWeapons, heatExplosionCandidates, shotsPerBin, spendAmmo } from './ammo'
+import { applyDamage, armorLeft, damageTotals, explodeAmmo, maxArmorFacings, structureLeft, structureOf } from './damage'
 import { chanceToHit } from './dice'
 import { projectHeat } from './heat'
 import { resolvePhysicalAttack } from './physicalAttack'
 import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationChances, targetMovementModifier, WEAPONS_BY_KEY } from './tables'
-import type { Attacker, Target } from './types'
+import type { Attacker, Location, Target } from './types'
+import { advanceTurn, newUnit } from '../state/unit'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
 
 const attacker = createAttacker
@@ -170,6 +173,51 @@ describe('Gauss Rifle', () => {
   })
 })
 
+describe('ammunition', () => {
+  const bin = (weaponKey: string, location: Location, shots = shotsPerBin(weaponKey)) => ({ ...newAmmoBin(weaponKey, location), shots })
+
+  it('one bin holds one ton', () => {
+    expect(shotsPerBin('LRM20')).toBe(6)
+    expect(shotsPerBin('GAUSS')).toBe(8)
+  })
+  it('weapons of one type share bins, earlier weapons first', () => {
+    const a = attacker({ ammoBins: [bin('SRM6', 'LT', 1)] })
+    const weapons = [newWeapon('SRM6', 'LA', 'x'), newWeapon('SRM6', 'RA', 'x'), newWeapon('ML', 'RT', 'x')]
+    expect([...drawAmmo(a, weapons).empty]).toEqual([weapons[1].id])
+    expect(firingWeapons(a, weapons).map((w) => w.weaponKey)).toEqual(['SRM6', 'ML'])
+  })
+  it('untracked types never run out', () => {
+    expect(drawAmmo(attacker(), [newWeapon('AC20', 'RT', 'x')]).empty.size).toBe(0)
+  })
+  it('draws from the emptiest bin and spends one shot per weapon fired', () => {
+    const full = bin('LRM20', 'LT')
+    const low = bin('LRM20', 'RT', 2)
+    const a = attacker({ ammoBins: [full, low] })
+    expect(spendAmmo(a, [newWeapon('LRM20', 'LT', 'x')]).map((b) => b.shots)).toEqual([6, 1])
+  })
+  it('ammo in a destroyed location is lost', () => {
+    const a = attacker({ ammoBins: [bin('GAUSS', 'RT')], destroyedLocations: ['RT'] })
+    expect(availableBins(a)).toEqual([])
+    expect(drawAmmo(a, [newWeapon('GAUSS', 'LT', 'x')]).empty.size).toBe(1)
+  })
+  it('explosion damage is Damage Value times shots, missiles counted (p. 32)', () => {
+    expect(explosionDamage(bin('MG', 'CT'))).toBe(400)
+    expect(explosionDamage(bin('SRM2', 'CT'))).toBe(200)
+    expect(explosionDamage(bin('GAUSS', 'CT'))).toBe(0)
+  })
+  it('heat explodes the most destructive ammo per shot first', () => {
+    const a = attacker({ ammoBins: [bin('MG', 'CT'), bin('LRM15', 'LT'), bin('SRM6', 'RT'), bin('LRM20', 'LT', 0)] })
+    expect(heatExplosionCandidates(a).map((b) => b.weaponKey)).toEqual(['LRM15'])
+  })
+  it('an empty bin blocks the attack', () => {
+    const t = target()
+    const w = newWeapon('GAUSS', 'RA', t.id)
+    const r = resolveWeaponAttack(w, { attacker: attacker(), target: t, spotter: defaultSpotter(), attackerIsSpotting: false, outOfAmmo: true })
+    expect(r.allowed).toBe(false)
+    expect(r.reasons).toContain('Out of ammo')
+  })
+})
+
 describe('missing arms', () => {
   const t = target({ range: 1 })
   const armless = attacker({ leftArm: { present: false }, rightArm: { present: false } })
@@ -216,5 +264,72 @@ describe('destroyed locations', () => {
     expect(punchLeft.allowed).toBe(false)
     const punchRight = resolvePhysicalAttack('punchRA', { attacker: a, target: target({ range: 1 }), firedLocations: new Set(), hatchetTable: 'standard' })
     expect(punchRight.allowed).toBe(true)
+  })
+})
+
+describe('armor and internal structure', () => {
+  // 50 tons: HD 3, CT 16, side torsos 12, arms 8, legs 12.
+  const mech = (options = {}) => attacker({ tonnage: 50, armor: { HD: 9, CT: 20, CTR: 6, LT: 16, LTR: 4, RT: 16, RTR: 4, LA: 10, RA: 10, LL: 12, RL: 12 }, ...options })
+
+  it('reads internal structure from the tonnage table', () => {
+    expect(structureOf(50, 'CT')).toBe(16)
+    expect(structureOf(90, 'LT')).toBe(19)
+    expect(structureOf(20, 'HD')).toBe(3)
+    expect(maxArmorFacings(50).CT + maxArmorFacings(50).CTR).toBe(32)
+    expect(maxArmorFacings(100).HD).toBe(9)
+  })
+  it('takes damage on armor first, then internal structure', () => {
+    const { attacker: a, steps } = applyDamage(mech(), 'LA', 13)
+    expect(armorLeft(a, 'LA')).toBe(0)
+    expect(structureLeft(a, 'LA')).toBe(5)
+    expect(steps).toEqual([{ location: 'LA', facing: 'LA', armor: 10, structure: 3, destroyed: false }])
+  })
+  it('destroys a location and transfers the rest inward', () => {
+    const { attacker: a, steps } = applyDamage(mech(), 'LA', 25)
+    expect(a.destroyedLocations).toEqual(['LA'])
+    expect(steps[1]).toMatchObject({ location: 'LT', armor: 7, structure: 0 })
+    expect(armorLeft(a, 'LT')).toBe(9)
+  })
+  it('sends hits on a destroyed location to the next one inward', () => {
+    const { steps } = applyDamage(mech({ destroyedLocations: ['LT'] }), 'LA', 5)
+    expect(steps).toEqual([{ location: 'CT', facing: 'CT', armor: 5, structure: 0, destroyed: false }])
+  })
+  it('keeps rear hits on rear armor when transferring', () => {
+    const { attacker: a } = applyDamage(mech({ destroyedLocations: ['LL'] }), 'LL', 6, { rear: true })
+    expect(armorLeft(a, 'LTR')).toBe(0)
+    expect(armorLeft(a, 'LT')).toBe(16)
+    expect(structureLeft(a, 'LT')).toBe(10)
+  })
+  it('destroys the Mech with the center torso and drops the rest', () => {
+    const { attacker: a, lost } = applyDamage(mech(), 'CT', 40)
+    expect(a.destroyedLocations).toContain('CT')
+    expect(lost).toBe(4)
+  })
+  it('explodes ammo straight into internal structure and empties the bin', () => {
+    const bin = { ...newAmmoBin('LRM20', 'LT'), shots: 2 }
+    const { attacker: a, steps } = explodeAmmo(mech({ ammoBins: [bin] }), bin.id)
+    // 2 shots x 20 missiles = 40: 12 to the left torso, 16 to the center torso, 12 left over.
+    expect(steps.map((s) => [s.location, s.armor, s.structure])).toEqual([
+      ['LT', 0, 12],
+      ['CT', 0, 16],
+    ])
+    expect(armorLeft(a, 'CT')).toBe(20)
+    expect(a.ammoBins[0].shots).toBe(0)
+  })
+  it('totals what is left over the locations the Mech has', () => {
+    const totals = damageTotals(mech({ leftArm: { present: false }, destroyedLocations: ['RA'] }))
+    expect(totals.armorMax).toBe(109)
+    expect(totals.armor).toBe(99)
+    expect(totals.structureMax).toBe(83 - 8)
+    expect(totals.structure).toBe(83 - 16)
+  })
+})
+
+describe('plain 2D6 mode', () => {
+  it('spends ammo on the next turn only while tracking', () => {
+    const unit = newUnit()
+    const shots = (u: typeof unit) => u.attacker.ammoBins.reduce((sum, b) => sum + b.shots, 0)
+    expect(shots(advanceTurn(unit))).toBe(shots(unit) - 3)
+    expect(shots(advanceTurn(unit, false))).toBe(shots(unit))
   })
 })

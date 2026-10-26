@@ -1,4 +1,4 @@
-import { firingWeapons } from './destruction'
+import { firingWeapons } from './ammo'
 import { ammoExplosionAvoid, heatMovementPenalty, heatToHitModifier, shutdownAvoid, WEAPONS_BY_KEY } from './tables'
 import type { Attacker, MountedWeapon } from './types'
 

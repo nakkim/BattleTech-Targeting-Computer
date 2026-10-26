@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { destroyedReason, firingWeapons, hasLocation } from '../rules/destruction'
+import { ammoTypes, availableBins, drawAmmo, explosionDamage, firingWeapons, isExplosive, shotsPerBin } from '../rules/ammo'
+import { declaredWeapons, destroyedReason, hasLocation } from '../rules/destruction'
 import { AIMED_SHOT_CHANCE, type WeaponAttackResult } from '../rules/weaponAttack'
 import { formatPercent } from '../rules/dice'
 import { isLrm, LOCATION_NAMES, LOCATIONS, MOVEMENT_NAMES, WEAPONS_BY_KEY } from '../rules/tables'
 import type { Attacker, Location, MountedWeapon, MovementMode, Spotter, Target } from '../rules/types'
 import { newWeapon } from '../state/defaults'
+import { rulesAttacker, useTracking } from '../state/mode'
+import { usePersistentState } from '../state/usePersistentState'
 import { Messages, ModifierList, TargetNumber } from './Breakdown'
-import { Chevron, Panel, Segmented, Toggle } from './fields'
+import { Chevron, NumberField, Panel, Segmented, Toggle } from './fields'
 import { WeaponPicker } from './WeaponPicker'
 
 interface Props {
@@ -18,6 +21,7 @@ interface Props {
   attackerIsSpotting: boolean
   targetWarnings: string[]
   onChange: (weapons: MountedWeapon[]) => void
+  onAttackerChange: (attacker: Attacker) => void
   onSpotterChange: (spotter: Spotter) => void
   onSpottingChange: (spotting: boolean) => void
 }
@@ -181,6 +185,62 @@ const WeaponRow = ({
   )
 }
 
+/** Shots left per tracked ammunition type, with this turn's use. Editable for manual corrections. */
+/** Shots left in each ammo bin, with this turn's use and explosion damage. Editable for manual corrections. */
+const AmmoBins = ({ attacker, weapons, onChange }: { attacker: Attacker; weapons: MountedWeapon[]; onChange: (attacker: Attacker) => void }) => {
+  const [collapsed, setCollapsed] = usePersistentState('btc-collapsed-ammo', () => false)
+  const bins = attacker.ammoBins
+  if (bins.length === 0) return null
+  const { drawn } = drawAmmo(attacker, declaredWeapons(attacker, weapons))
+  const available = new Set(availableBins(attacker).map((b) => b.id))
+  const totals = ammoTypes(weapons)
+    .map((key) => [key, bins.filter((b) => b.weaponKey === key && available.has(b.id)).reduce((s, b) => s + b.shots, 0)] as const)
+    .filter(([key]) => bins.some((b) => b.weaponKey === key))
+  const setShots = (id: string, shots: number) => onChange({ ...attacker, ammoBins: bins.map((b) => (b.id === id ? { ...b, shots } : b)) })
+
+  return (
+    <fieldset className={`limb ammo ${collapsed ? 'ammo-collapsed' : ''}`}>
+      <legend>
+        <button type="button" className="collapse-toggle" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)} title={collapsed ? 'Show ammunition' : 'Hide ammunition'}>
+          <Chevron open={!collapsed} />
+          Ammunition
+        </button>
+      </legend>
+      {collapsed ? (
+        <span className="panel-summary">{totals.map(([key, shots]) => `${WEAPONS_BY_KEY[key].name} ${shots}`).join(' · ')}</span>
+      ) : (
+        <div className="grid-3">
+          {bins.map((bin) => {
+            const lost = destroyedReason(attacker, bin.location)
+            const use = drawn.get(bin.id) ?? 0
+            const blast = explosionDamage(bin)
+            const hint = lost
+              ? `${lost}: ammo lost`
+              : [
+                  `of ${shotsPerBin(bin.weaponKey)}`,
+                  use > 0 && `−${use} this turn`,
+                  !isExplosive(bin.weaponKey) ? 'does not explode' : blast > 0 && `explodes for ${blast}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+            return (
+              <div key={bin.id} className={lost ? 'ammo-lost' : ''}>
+                <NumberField
+                  label={`${WEAPONS_BY_KEY[bin.weaponKey].name} · ${bin.location}`}
+                  value={bin.shots}
+                  max={shotsPerBin(bin.weaponKey)}
+                  onChange={(v) => setShots(bin.id, v)}
+                  hint={hint}
+                />
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </fieldset>
+  )
+}
+
 export const WeaponsPanel = (props: Props) => {
   const { weapons, results, targets, spotter, onChange } = props
   const add = (weaponKey: string, location: Location) => {
@@ -188,7 +248,8 @@ export const WeaponsPanel = (props: Props) => {
     onChange([...weapons, newWeapon(weaponKey, location, primary.id)])
   }
 
-  const firing = firingWeapons(props.attacker, weapons)
+  const tracking = useTracking()
+  const firing = firingWeapons(rulesAttacker(props.attacker, tracking), weapons)
   const totalExpected = firing.reduce((s, w) => s + (results.get(w.id)?.expectedDamage ?? 0), 0)
   const totalHeat = firing.reduce((s, w) => s + WEAPONS_BY_KEY[w.weaponKey].heat, 0)
   const anyIndirect = firing.some((w) => w.indirect)
@@ -228,6 +289,8 @@ export const WeaponsPanel = (props: Props) => {
           ))}
         </ul>
       )}
+
+      {tracking && <AmmoBins attacker={props.attacker} weapons={weapons} onChange={props.onAttackerChange} />}
 
       <div className="totals">
         <span title="Weapons fired this turn">

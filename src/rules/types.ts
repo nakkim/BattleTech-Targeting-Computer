@@ -2,6 +2,9 @@ export type MovementMode = 'stationary' | 'walked' | 'ran' | 'jumped'
 
 export type Location = 'HD' | 'CT' | 'LT' | 'RT' | 'LA' | 'RA' | 'LL' | 'RL'
 
+/** Armor of every location's front, plus the rear of the three torsos. */
+export type ArmorFacing = Location | 'CTR' | 'LTR' | 'RTR'
+
 /** Firing arc of the attacker, or the side of the target that is hit. */
 export type Arc = 'front' | 'left' | 'right' | 'rear'
 
@@ -74,6 +77,24 @@ export interface Attacker {
   hasClub: boolean
   /** Locations destroyed or blown off. Head or center torso destroys the 'Mech. */
   destroyedLocations: Location[]
+  /** Armor points per facing on the record sheet. */
+  armor: Record<ArmorFacing, number>
+  /** Armor points lost per facing. */
+  armorDamage: Partial<Record<ArmorFacing, number>>
+  /** Internal structure circles lost per location. The starting values come from tonnage. */
+  structureDamage: Partial<Record<Location, number>>
+  /** One bin per ton of ammunition. Ammo types without bins are not tracked. */
+  ammoBins: AmmoBin[]
+}
+
+/** One ton of ammunition in a critical slot of the record sheet. */
+export interface AmmoBin {
+  id: string
+  /** Weapon type the ammo is for, e.g. 'LRM20'. */
+  weaponKey: string
+  location: Location
+  /** Shots left. A full bin holds the weapon's ammo per ton. */
+  shots: number
 }
 
 export interface Target {

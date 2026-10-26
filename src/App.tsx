@@ -2,12 +2,18 @@ import { useMemo, useState } from 'react'
 import { MechDialog } from './components/MechDialog'
 import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
-import { createAttacker, mountWeapons, newId } from './state/defaults'
+import { createAttacker, fillAmmoBins, mountWeapons, newId } from './state/defaults'
 import { HIGHLANDER_HGN_732 } from './state/presets'
 import { advanceTurn, initialLance, newUnit, normalizeLance, type LanceState, type UnitState } from './state/unit'
+import { ModeContext, type AppMode } from './state/mode'
 import { usePersistentState } from './state/usePersistentState'
 import type { Attacker, MountedWeapon } from './rules/types'
 import './App.css'
+
+const MODES: { value: AppMode; label: string; title: string }[] = [
+  { value: 'tracking', label: 'Track stats', title: 'Track ammo, armor and internal structure from turn to turn' },
+  { value: 'plain', label: 'Plain 2D6', title: 'Only hit or miss on 2D6: ammo, armor and internal structure are not tracked' },
+]
 
 const App = () => {
   const [storedLance, setLance] = usePersistentState<LanceState>('btc-lance-v1', initialLance)
@@ -18,6 +24,7 @@ const App = () => {
   const updateActive = (update: (unit: UnitState) => UnitState) =>
     updateLance((l) => ({ ...l, units: l.units.map((u) => (u.id === active.id ? update(u) : u)) }))
 
+  const [mode, setMode] = usePersistentState<AppMode>('btc-mode', () => 'tracking')
   const [adding, setAdding] = useState(false)
   const add = (attacker: Attacker, weapons: MountedWeapon[]) => {
     const unit = newUnit({ attacker, weapons: weapons.map((w) => [w.weaponKey, w.location]) })
@@ -50,9 +57,10 @@ const App = () => {
     if (confirm('Reset the whole lance to defaults?')) setLance(initialLance())
   }
 
-  const newTurn = () => updateLance((l) => ({ ...l, units: l.units.map(advanceTurn), turn: l.turn + 1 }))
+  const newTurn = () => updateLance((l) => ({ ...l, units: l.units.map((u) => advanceTurn(u, mode === 'tracking')), turn: l.turn + 1 }))
 
   return (
+    <ModeContext value={mode}>
     <div className="app">
       <header className="app-header">
         <div>
@@ -63,8 +71,15 @@ const App = () => {
           <p className="subtitle">BattleTech: A Game of Armored Combat · attack phase calculator</p>
         </div>
         <div className="header-actions">
+          <div className="segmented mode-switch" role="radiogroup" aria-label="Mode">
+            {MODES.map((m) => (
+              <button key={m.value} type="button" role="radio" aria-checked={mode === m.value} className={mode === m.value ? 'active' : ''} onClick={() => setMode(m.value)} title={m.title}>
+                {m.label}
+              </button>
+            ))}
+          </div>
           <div className="turn-control">
-            <button type="button" onClick={newTurn} title="For every 'Mech: clear movement, apply projected heat, reset weapon fire">
+            <button type="button" onClick={newTurn} title={`For every 'Mech: clear movement, apply projected heat${mode === 'tracking' ? ', spend ammo' : ''}, reset weapon fire`}>
               Next turn
             </button>
             <span className="turn-counter" aria-live="polite">
@@ -90,7 +105,7 @@ const App = () => {
         <MechDialog
           title="Add 'Mech to lance"
           submitLabel="Add 'Mech"
-          attacker={createAttacker({ ...HIGHLANDER_HGN_732.attacker, name: `Highlander HGN-732 #${lance.units.length + 1}` })}
+          attacker={createAttacker({ ...HIGHLANDER_HGN_732.attacker, ammoBins: fillAmmoBins(HIGHLANDER_HGN_732.ammo ?? []), name: `Highlander HGN-732 #${lance.units.length + 1}` })}
           weapons={mountWeapons(HIGHLANDER_HGN_732.weapons, '')}
           targetId=""
           onSave={add}
@@ -109,6 +124,7 @@ const App = () => {
         </p>
       </footer>
     </div>
+    </ModeContext>
   )
 }
 
