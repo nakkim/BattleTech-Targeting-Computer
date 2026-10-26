@@ -20,6 +20,8 @@ export interface UnitState {
 export interface LanceState {
   units: UnitState[]
   activeUnitId: string
+  /** Game turn, starting at 1. */
+  turn: number
 }
 
 /** A new lance member facing a Hunchback (primary) and a Locust. Defaults to an HGN-732 Highlander. */
@@ -38,17 +40,18 @@ export const newUnit = ({ attacker, weapons }: MechPreset = HIGHLANDER_HGN_732):
   }
 }
 
-/** Fill in attacker fields added after a lance was saved, so old saves keep working. */
+/** Fill in fields added after a lance was saved, so old saves keep working. */
 export const normalizeLance = (lance: LanceState): LanceState => {
   return {
     ...lance,
+    turn: lance.turn ?? 1,
     units: lance.units.map((u) => ({ ...u, attacker: createAttacker(u.attacker) })),
   }
 }
 
 export const initialLance = (): LanceState => {
   const unit = newUnit()
-  return { units: [unit], activeUnitId: unit.id }
+  return { units: [unit], activeUnitId: unit.id, turn: 1 }
 }
 
 /** Clear movement and per-turn declarations, and carry projected heat forward. */

@@ -21,7 +21,7 @@ const App = () => {
   const [adding, setAdding] = useState(false)
   const add = (attacker: Attacker, weapons: MountedWeapon[]) => {
     const unit = newUnit({ attacker, weapons: weapons.map((w) => [w.weaponKey, w.location]) })
-    updateLance((l) => ({ units: [...l.units, unit], activeUnitId: unit.id }))
+    updateLance((l) => ({ ...l, units: [...l.units, unit], activeUnitId: unit.id }))
   }
 
   const duplicate = () => {
@@ -34,7 +34,7 @@ const App = () => {
       const index = l.units.findIndex((u) => u.id === active.id)
       const units = [...l.units]
       units.splice(index + 1, 0, copy)
-      return { units, activeUnitId: copy.id }
+      return { ...l, units, activeUnitId: copy.id }
     })
   }
 
@@ -43,14 +43,14 @@ const App = () => {
       const index = l.units.findIndex((u) => u.id === id)
       const units = l.units.filter((u) => u.id !== id)
       const activeUnitId = l.activeUnitId === id ? units[Math.max(0, index - 1)].id : l.activeUnitId
-      return { units, activeUnitId }
+      return { ...l, units, activeUnitId }
     })
 
   const reset = () => {
     if (confirm('Reset the whole lance to defaults?')) setLance(initialLance())
   }
 
-  const newTurn = () => updateLance((l) => ({ ...l, units: l.units.map(advanceTurn) }))
+  const newTurn = () => updateLance((l) => ({ ...l, units: l.units.map(advanceTurn), turn: l.turn + 1 }))
 
   return (
     <div className="app">
@@ -63,9 +63,14 @@ const App = () => {
           <p className="subtitle">BattleTech: A Game of Armored Combat · attack phase calculator</p>
         </div>
         <div className="header-actions">
-          <button type="button" onClick={newTurn} title="For every 'Mech: clear movement, apply projected heat, reset weapon fire">
-            Next turn
-          </button>
+          <div className="turn-control">
+            <button type="button" onClick={newTurn} title="For every 'Mech: clear movement, apply projected heat, reset weapon fire">
+              Next turn
+            </button>
+            <span className="turn-counter" aria-live="polite">
+              Turn {lance.turn}
+            </span>
+          </div>
           <button type="button" className="ghost" onClick={reset}>
             Reset
           </button>
