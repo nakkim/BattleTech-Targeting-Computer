@@ -2,10 +2,13 @@ import { useMemo, useState } from 'react'
 import { projectHeat } from '../rules/heat'
 import { PHYSICAL_ATTACK_TYPES, resolvePhysicalAttack } from '../rules/physicalAttack'
 import type { Location, Target } from '../rules/types'
-import { firingWeapons } from '../rules/destruction'
+import { drawAmmo, firingWeapons } from '../rules/ammo'
+import { declaredWeapons } from '../rules/destruction'
 import { checkTargets, resolveWeaponAttack, type WeaponAttackResult } from '../rules/weaponAttack'
+import { rulesAttacker, useTracking } from '../state/mode'
 import type { UnitState } from '../state/unit'
 import { AttackerPanel, MechDataPanel } from './AttackerPanel'
+import { DamagePanel } from './DamagePanel'
 import { HeatPanel } from './HeatPanel'
 import { HitLocationPanel } from './HitLocationPanel'
 import { MechDialog } from './MechDialog'
@@ -20,7 +23,10 @@ interface Props {
 
 export const UnitView = ({ unit, onChange }: Props) => {
   const set = (patch: Partial<UnitState>) => onChange((u) => ({ ...u, ...patch }))
-  const { attacker, targets, weapons, spotter } = unit
+  const { targets, weapons, spotter } = unit
+  const tracking = useTracking()
+  // Rules see no ammo bins in plain mode; edits still go to the stored attacker.
+  const attacker = rulesAttacker(unit.attacker, tracking)
   const [editing, setEditing] = useState(false)
 
   const selectedTarget = targets.find((t) => t.id === unit.selectedTargetId) ?? targets[0]
@@ -28,9 +34,10 @@ export const UnitView = ({ unit, onChange }: Props) => {
 
   const weaponResults = useMemo(() => {
     const map = new Map<string, WeaponAttackResult>()
+    const { empty } = drawAmmo(attacker, declaredWeapons(attacker, weapons))
     for (const w of weapons) {
       const target = targets.find((t) => t.id === w.targetId) ?? targets[0]
-      map.set(w.id, resolveWeaponAttack(w, { attacker, target, spotter, attackerIsSpotting: unit.attackerIsSpotting }))
+      map.set(w.id, resolveWeaponAttack(w, { attacker, target, spotter, attackerIsSpotting: unit.attackerIsSpotting, outOfAmmo: empty.has(w.id) }))
     }
     return map
   }, [weapons, targets, attacker, spotter, unit.attackerIsSpotting])
@@ -67,14 +74,15 @@ export const UnitView = ({ unit, onChange }: Props) => {
           <MechDialog
             title="Edit 'Mech"
             submitLabel="Save"
-            attacker={attacker}
+            attacker={unit.attacker}
             weapons={weapons}
             targetId={(targets.find((t) => t.primary) ?? targets[0]).id}
             onSave={(a, w) => set({ attacker: a, weapons: w })}
             onClose={() => setEditing(false)}
           />
         )}
-        <AttackerPanel attacker={attacker} onChange={(a) => set({ attacker: a })} />
+        <AttackerPanel attacker={unit.attacker} onChange={(a) => set({ attacker: a })} />
+        {tracking && <DamagePanel attacker={unit.attacker} onChange={(a) => set({ attacker: a })} />}
         <TargetsPanel
           targets={targets}
           selectedId={selectedTarget.id}
@@ -90,7 +98,7 @@ export const UnitView = ({ unit, onChange }: Props) => {
       </div>
       <div className="col col-results">
         <WeaponsPanel
-          attacker={attacker}
+          attacker={unit.attacker}
           weapons={weapons}
           results={weaponResults}
           targets={targets}
@@ -98,6 +106,7 @@ export const UnitView = ({ unit, onChange }: Props) => {
           attackerIsSpotting={unit.attackerIsSpotting}
           targetWarnings={targetWarnings}
           onChange={(w) => set({ weapons: w })}
+          onAttackerChange={(a) => set({ attacker: a })}
           onSpotterChange={(s) => set({ spotter: s })}
           onSpottingChange={(v) => set({ attackerIsSpotting: v })}
         />
@@ -111,7 +120,7 @@ export const UnitView = ({ unit, onChange }: Props) => {
         />
         <div className="grid-results">
           <HitLocationPanel target={selectedTarget} />
-          <HeatPanel current={attacker.heat} projection={heat} />
+          <HeatPanel attacker={unit.attacker} projection={heat} />
         </div>
       </div>
     </main>

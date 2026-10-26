@@ -43,6 +43,7 @@ export const destroyedReason = (attacker: LocationState, location: Location): st
 }
 
 /** Weapons that are declared to fire and still have an intact location. */
-export const firingWeapons = (attacker: LocationState, weapons: MountedWeapon[]): MountedWeapon[] => {
+export const declaredWeapons = (attacker: LocationState, weapons: MountedWeapon[]): MountedWeapon[] => {
   return weapons.filter((w) => w.fire && !isLocationDestroyed(attacker, w.location))
 }
+

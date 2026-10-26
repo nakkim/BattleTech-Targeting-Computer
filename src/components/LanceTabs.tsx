@@ -1,5 +1,7 @@
-import { firingWeapons, isMechDestroyed } from '../rules/destruction'
+import { firingWeapons } from '../rules/ammo'
+import { isMechDestroyed } from '../rules/destruction'
 import { projectHeat } from '../rules/heat'
+import { rulesAttacker, useTracking } from '../state/mode'
 import type { UnitState } from '../state/unit'
 
 interface Props {
@@ -12,12 +14,13 @@ interface Props {
 }
 
 export const LanceTabs = ({ units, activeId, onSelect, onAdd, onDuplicate, onRemove }: Props) => {
+  const tracking = useTracking()
   return (
     <nav className="lance-tabs" aria-label="Lance">
       <div className="lance-tablist" role="tablist">
         {units.map((u) => {
-          const heat = projectHeat(u.attacker, u.weapons).next
-          const firing = firingWeapons(u.attacker, u.weapons).length
+          const heat = projectHeat(rulesAttacker(u.attacker, tracking), u.weapons).next
+          const firing = firingWeapons(rulesAttacker(u.attacker, tracking), u.weapons).length
           const destroyed = isMechDestroyed(u.attacker)
           const active = u.id === activeId
           return (

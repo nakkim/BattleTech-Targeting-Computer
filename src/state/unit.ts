@@ -1,7 +1,9 @@
+import { spendAmmo } from '../rules/ammo'
 import { projectHeat } from '../rules/heat'
 import type { HitTable } from '../rules/tables'
 import type { Attacker, MountedWeapon, Spotter, Target } from '../rules/types'
-import { createAttacker, createTarget, defaultSpotter, mountWeapons, newId } from './defaults'
+import { createAttacker, createTarget, defaultSpotter, fillAmmoBins, mountWeapons, newId } from './defaults'
+import { rulesAttacker } from './mode'
 import { HIGHLANDER_HGN_732, HUNCHBACK_HBK_4G, LOCUST_LCT_1V, type MechPreset } from './presets'
 
 /** Everything the targeting computer tracks for one 'Mech of the lance. */
@@ -25,11 +27,11 @@ export interface LanceState {
 }
 
 /** A new lance member facing a Hunchback (primary) and a Locust. Defaults to an HGN-732 Highlander. */
-export const newUnit = ({ attacker, weapons }: MechPreset = HIGHLANDER_HGN_732): UnitState => {
+export const newUnit = ({ attacker, weapons, ammo = [] }: MechPreset = HIGHLANDER_HGN_732): UnitState => {
   const target = createTarget({ ...HUNCHBACK_HBK_4G, range: 5 })
   return {
     id: newId('u'),
-    attacker: createAttacker(attacker),
+    attacker: createAttacker({ ammoBins: fillAmmoBins(ammo), ...attacker }),
     targets: [target, createTarget({ ...LOCUST_LCT_1V, range: 8, primary: false })],
     weapons: mountWeapons(weapons, target.id),
     spotter: defaultSpotter(),
@@ -54,8 +56,8 @@ export const initialLance = (): LanceState => {
   return { units: [unit], activeUnitId: unit.id, turn: 1 }
 }
 
-/** Clear movement and per-turn declarations, and carry projected heat forward. */
-export const advanceTurn = (unit: UnitState): UnitState => {
+/** Clear movement and per-turn declarations, carry projected heat forward and spend the ammo fired (when tracked). */
+export const advanceTurn = (unit: UnitState, tracking = true): UnitState => {
   const { attacker, targets, weapons } = unit
   return {
     ...unit,
@@ -65,7 +67,8 @@ export const advanceTurn = (unit: UnitState): UnitState => {
       hexesMoved: 0,
       torsoTwisted: false,
       armsFlipped: false,
-      heat: projectHeat(attacker, weapons).next,
+      heat: projectHeat(rulesAttacker(attacker, tracking), weapons).next,
+      ammoBins: tracking ? spendAmmo(attacker, weapons) : attacker.ammoBins,
     },
     targets: targets.map((t) => ({ ...t, hexesMoved: 0, jumped: false, legArc: t.arc })),
     weapons: weapons.map((w) => ({ ...w, fire: true, indirect: false, aimedAt: null })),

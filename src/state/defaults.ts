@@ -1,4 +1,6 @@
-import type { ArmState, Attacker, LegState, Location, MountedWeapon, Spotter, Target } from '../rules/types'
+import { shotsPerBin } from '../rules/ammo'
+import { maxArmorFacings } from '../rules/damage'
+import type { AmmoBin, ArmState, Attacker, LegState, Location, MountedWeapon, Spotter, Target } from '../rules/types'
 
 export const defaultArm = (): ArmState => ({
   present: true,
@@ -25,6 +27,11 @@ export interface AttackerOptions extends Omit<Partial<Attacker>, 'leftArm' | 'ri
 }
 
 export const createAttacker = ({ leftArm, rightArm, ...options }: AttackerOptions = {}): Attacker => ({
+  ammoBins: [],
+  // Without record sheet values, every location carries its maximum armor.
+  armor: maxArmorFacings(options.tonnage ?? 55),
+  armorDamage: {},
+  structureDamage: {},
   name: 'Attacker',
   gunnery: 4,
   piloting: 5,
@@ -90,4 +97,14 @@ export type Loadout = [weaponKey: string, location: Location][]
 
 export const mountWeapons = (loadout: Loadout, targetId: string): MountedWeapon[] => {
   return loadout.map(([weaponKey, location]) => newWeapon(weaponKey, location, targetId))
+}
+
+/** A full one-ton ammo bin. */
+export const newAmmoBin = (weaponKey: string, location: Location): AmmoBin => {
+  return { id: newId('a'), weaponKey, location, shots: shotsPerBin(weaponKey) }
+}
+
+/** Full ammo bins, one per [weapon type, location] entry. */
+export const fillAmmoBins = (bins: Loadout): AmmoBin[] => {
+  return bins.map(([weaponKey, location]) => newAmmoBin(weaponKey, location))
 }
