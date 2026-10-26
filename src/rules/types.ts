@@ -72,6 +72,8 @@ export interface Attacker {
   leftLeg: LegState
   rightLeg: LegState
   heatSinks: number
+  /** Heat sinks destroyed by critical hits (p. 33). */
+  heatSinkHits: number
   submergedHeatSinks: number
   engineHits: number
   hasClub: boolean

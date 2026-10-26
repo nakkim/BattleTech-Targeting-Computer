@@ -1,6 +1,6 @@
 import { explosionDamage, heatExplosionCandidates } from '../rules/ammo'
 import type { HeatProjection } from '../rules/heat'
-import { heatEffects } from '../rules/heat'
+import { heatEffects, workingHeatSinks } from '../rules/heat'
 import { ammoExplosionAvoid, LOCATION_NAMES, WEAPONS_BY_KEY } from '../rules/tables'
 import type { Attacker } from '../rules/types'
 import { useTracking } from '../state/mode'
@@ -56,7 +56,7 @@ export const HeatPanel = ({ attacker, projection }: { attacker: Attacker; projec
           </li>
         ))}
         <li>
-          <span>Dissipation</span>
+          <span>Dissipation{attacker.heatSinkHits > 0 && ` (${workingHeatSinks(attacker)} of ${attacker.heatSinks} heat sinks)`}</span>
           <span>–{projection.dissipated}</span>
         </li>
         <li className="heat-total">

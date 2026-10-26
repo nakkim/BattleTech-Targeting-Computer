@@ -18,7 +18,7 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - Apply a hit to a location: armor takes it first, then internal structure. A location with no internal structure left is destroyed, and the rest of the damage transfers inward. Rear hits stay on rear armor.
   - Ammo explosions damage internal structure directly, skipping armor.
   - A report lists what each location took, when to roll for critical hits, and MechWarrior damage. **Undo** reverts the last hit and **Repair** clears all damage.
-- **Critical damage**: mark destroyed locations, damaged actuators and engine hits. A side torso takes its arm with it, and a destroyed head or center torso destroys the 'Mech.
+- **Critical damage**: mark destroyed locations, damaged actuators, destroyed heat sinks and engine hits. A side torso takes its arm with it, and a destroyed head or center torso destroys the 'Mech.
 - **Physical attacks**: punch, kick, club, hatchet, push, charge and DFA. Shows Target Numbers, damage groups, hit tables, level differences and actuator damage.
 - **Hit location**: chance of each location by attack direction (standard, punch and kick tables), plus the Cluster Hits Table.
 - **Heat**: projects heat after the Heat Phase and shows the heat effects. At 19 heat or more it shows the roll to avoid an ammo explosion and which bin would explode.

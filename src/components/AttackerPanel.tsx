@@ -1,4 +1,5 @@
 import { destroyedReason, hasLocation, isLocationDestroyed, isMechDestroyed } from '../rules/destruction'
+import { workingHeatSinks } from '../rules/heat'
 import { LOCATION_NAMES, MOVEMENT_NAMES } from '../rules/tables'
 import type { ArmState, Attacker, LegState, Location, MovementMode } from '../rules/types'
 import { WATER_OPTIONS } from './options'
@@ -27,7 +28,7 @@ export const MechDataPanel = ({ attacker, onEdit }: { attacker: Attacker; onEdit
     ['Gunnery', attacker.gunnery],
     ['Piloting', attacker.piloting],
     ['Tonnage', `${attacker.tonnage} t`],
-    ['Heat sinks', attacker.heatSinks],
+    ['Heat sinks', attacker.heatSinkHits > 0 ? `${attacker.heatSinks} (${attacker.heatSinkHits} destroyed)` : attacker.heatSinks],
     ['Left arm', armSummary(attacker.leftArm)],
     ['Right arm', armSummary(attacker.rightArm)],
   ]
@@ -43,7 +44,7 @@ export const MechDataPanel = ({ attacker, onEdit }: { attacker: Attacker; onEdit
       }
       summary={
         <>
-          G{attacker.gunnery} P{attacker.piloting} · {attacker.tonnage}t · {attacker.heatSinks} HS
+          G{attacker.gunnery} P{attacker.piloting} · {attacker.tonnage}t · {attacker.heatSinkHits > 0 ? `${workingHeatSinks(attacker)}/${attacker.heatSinks}` : attacker.heatSinks} HS
           {hatchets.length > 0 && ` · hatchet ${hatchets.join('/')}`}
           {missingArms.length === 2 ? ' · no arms' : missingArms.length === 1 && ` · no ${missingArms[0]}`}
         </>
@@ -227,7 +228,7 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
           label="Submerged heat sinks"
           value={attacker.submergedHeatSinks}
           onChange={(v) => set({ submergedHeatSinks: v })}
-          max={attacker.heatSinks}
+          max={workingHeatSinks(attacker)}
           hint="Extra –1 heat each, max 6"
         />
       )}
@@ -247,6 +248,13 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
           <LegDamage title="Left leg" leg={attacker.leftLeg} loss={limbLoss(attacker, 'LL')} onChange={(leftLeg) => set({ leftLeg })} />
           <LegDamage title="Right leg" leg={attacker.rightLeg} loss={limbLoss(attacker, 'RL')} onChange={(rightLeg) => set({ rightLeg })} />
         </div>
+        <NumberField
+          label="Heat sinks destroyed"
+          value={Math.min(attacker.heatSinkHits, attacker.heatSinks)}
+          onChange={(heatSinkHits) => set({ heatSinkHits, submergedHeatSinks: Math.min(attacker.submergedHeatSinks, attacker.heatSinks - heatSinkHits) })}
+          max={attacker.heatSinks}
+          hint={`${workingHeatSinks(attacker)} of ${attacker.heatSinks} working: each one destroyed dissipates 1 less heat`}
+        />
         <Segmented
           label="Engine hits"
           value={attacker.engineHits}

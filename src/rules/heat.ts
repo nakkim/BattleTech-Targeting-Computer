@@ -43,6 +43,11 @@ export const heatEffects = (heat: number): string[] => {
   return effects
 }
 
+/** Heat sinks still working: each one destroyed by a critical hit dissipates nothing (p. 33). */
+export const workingHeatSinks = (attacker: Pick<Attacker, 'heatSinks' | 'heatSinkHits'>): number => {
+  return Math.max(0, attacker.heatSinks - attacker.heatSinkHits)
+}
+
 export const projectHeat = (attacker: Attacker, weapons: MountedWeapon[]): HeatProjection => {
   const lines: HeatLine[] = []
   const move = movementHeat(attacker)
@@ -53,8 +58,9 @@ export const projectHeat = (attacker: Attacker, weapons: MountedWeapon[]): HeatP
   }
   if (attacker.engineHits > 0) lines.push({ label: `Engine hits (${attacker.engineHits})`, value: attacker.engineHits >= 2 ? 10 : 5 })
   const generated = lines.reduce((s, l) => s + l.value, 0)
-  const waterBonus = Math.min(6, Math.min(attacker.submergedHeatSinks, attacker.heatSinks))
-  const dissipated = attacker.heatSinks + waterBonus
+  const working = workingHeatSinks(attacker)
+  const waterBonus = Math.min(6, Math.min(attacker.submergedHeatSinks, working))
+  const dissipated = working + waterBonus
   const next = Math.max(0, attacker.heat + generated - dissipated)
   return { lines, generated, dissipated, next, effects: heatEffects(next) }
 }

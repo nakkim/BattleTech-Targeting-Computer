@@ -48,6 +48,7 @@ export const createAttacker = ({ leftArm, rightArm, ...options }: AttackerOption
   leftLeg: defaultLeg(),
   rightLeg: defaultLeg(),
   heatSinks: 10,
+  heatSinkHits: 0,
   submergedHeatSinks: 0,
   engineHits: 0,
   hasClub: false,

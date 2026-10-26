@@ -333,3 +333,14 @@ describe('plain 2D6 mode', () => {
     expect(shots(advanceTurn(unit, false))).toBe(shots(unit))
   })
 })
+
+describe('heat sink damage', () => {
+  it('destroyed heat sinks dissipate nothing (p. 33)', () => {
+    // 16 heat sinks with 3 destroyed dissipate 13.
+    expect(projectHeat(attacker({ heatSinks: 16, heatSinkHits: 3 }), []).dissipated).toBe(13)
+  })
+  it('only working heat sinks count as submerged', () => {
+    const a = attacker({ heatSinks: 10, heatSinkHits: 7, waterDepth: 2, submergedHeatSinks: 6 })
+    expect(projectHeat(a, []).dissipated).toBe(3 + 3)
+  })
+})
