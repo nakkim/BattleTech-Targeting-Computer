@@ -8,7 +8,7 @@ import { resolvePhysicalAttack } from './physicalAttack'
 import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationChances, targetMovementModifier, WEAPONS_BY_KEY } from './tables'
 import type { Attacker, Location, Target } from './types'
 import { buildMech, MECHS } from '../state/mechCatalog'
-import { advanceTurn, newUnit } from '../state/unit'
+import { advanceTurn, newUnit, unitName } from '../state/unit'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
 
 const attacker = createAttacker
@@ -344,5 +344,17 @@ describe('heat sink damage', () => {
   it('only working heat sinks count as submerged', () => {
     const a = attacker({ heatSinks: 10, heatSinkHits: 7, waterDepth: 2, submergedHeatSinks: 6 })
     expect(projectHeat(a, []).dissipated).toBe(3 + 3)
+  })
+})
+
+describe('unitName', () => {
+  it('numbers a model only when the lance already has it', () => {
+    expect(unitName('Atlas AS7-D', ['Locust LCT-1E'])).toBe('Atlas AS7-D')
+    expect(unitName('Atlas AS7-D', ['Atlas AS7-D'])).toBe('Atlas AS7-D #2')
+    expect(unitName('Atlas AS7-D', ['Atlas AS7-D', 'Atlas AS7-D #3'])).toBe('Atlas AS7-D #4')
+  })
+
+  it('does not treat a longer model name as the same model', () => {
+    expect(unitName('Atlas AS7-D', ['Atlas AS7-D-DC', 'Atlas AS7-D (copy)'])).toBe('Atlas AS7-D')
   })
 })

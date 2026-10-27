@@ -52,6 +52,19 @@ export const normalizeLance = (lance: LanceState): LanceState => {
   }
 }
 
+/**
+ * Name for a new lance member: the model name, numbered only when the lance already has that model,
+ * e.g. "Atlas AS7-D #2". An unnumbered "Atlas AS7-D" counts as #1.
+ */
+export const unitName = (model: string, names: string[]): string => {
+  const numbers = names.flatMap((name) => {
+    if (name === model) return [1]
+    const match = name.startsWith(`${model} #`) && /^\d+$/.exec(name.slice(model.length + 2))
+    return match ? [Number(match[0])] : []
+  })
+  return numbers.length ? `${model} #${Math.max(...numbers) + 1}` : model
+}
+
 export const initialLance = (): LanceState => {
   const unit = newUnit()
   return { units: [unit], activeUnitId: unit.id, turn: 1 }

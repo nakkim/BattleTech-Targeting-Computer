@@ -7,7 +7,7 @@ import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
 import { newId } from './state/defaults'
 import { buildMech, defaultMech, MECHS, OTHER_MECH } from './state/mechCatalog'
-import { advanceTurn, initialLance, newUnit, normalizeLance, type LanceState, type UnitState } from './state/unit'
+import { advanceTurn, initialLance, newUnit, normalizeLance, unitName, type LanceState, type UnitState } from './state/unit'
 import { ModeContext, type AppMode } from './state/mode'
 import { usePersistentState } from './state/usePersistentState'
 import type { Attacker, MountedWeapon } from './rules/types'
@@ -41,8 +41,10 @@ const App = () => {
     document.documentElement.dataset.theme = theme
   }, [theme])
   const [adding, setAdding] = useState(false)
-  // New 'Mechs are numbered after the lance size, e.g. "Atlas AS7-D #3".
-  const numbered = ({ attacker, weapons }: ReturnType<typeof buildMech>) => ({ attacker: { ...attacker, name: `${attacker.name} #${lance.units.length + 1}` }, weapons })
+  const numbered = ({ attacker, weapons }: ReturnType<typeof buildMech>) => ({
+    attacker: { ...attacker, name: unitName(attacker.name, lance.units.map((u) => u.attacker.name)) },
+    weapons,
+  })
   const add = (attacker: Attacker, weapons: MountedWeapon[]) => {
     const unit = newUnit({ attacker, weapons })
     updateLance((l) => ({ ...l, units: [...l.units, unit], activeUnitId: unit.id }))
