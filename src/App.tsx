@@ -5,8 +5,8 @@ import { StatusLine } from './components/StatusLine'
 import { Typewriter } from './components/Typewriter'
 import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
-import { createAttacker, fillAmmoBins, mountWeapons, newId } from './state/defaults'
-import { HIGHLANDER_HGN_732 } from './state/presets'
+import { newId } from './state/defaults'
+import { buildMech, defaultMech, MECHS, OTHER_MECH } from './state/mechCatalog'
 import { advanceTurn, initialLance, newUnit, normalizeLance, type LanceState, type UnitState } from './state/unit'
 import { ModeContext, type AppMode } from './state/mode'
 import { usePersistentState } from './state/usePersistentState'
@@ -41,8 +41,10 @@ const App = () => {
     document.documentElement.dataset.theme = theme
   }, [theme])
   const [adding, setAdding] = useState(false)
+  // New 'Mechs are numbered after the lance size, e.g. "Atlas AS7-D #3".
+  const numbered = ({ attacker, weapons }: ReturnType<typeof buildMech>) => ({ attacker: { ...attacker, name: `${attacker.name} #${lance.units.length + 1}` }, weapons })
   const add = (attacker: Attacker, weapons: MountedWeapon[]) => {
-    const unit = newUnit({ attacker, weapons: weapons.map((w) => [w.weaponKey, w.location]) })
+    const unit = newUnit({ attacker, weapons })
     updateLance((l) => ({ ...l, units: [...l.units, unit], activeUnitId: unit.id }))
   }
 
@@ -117,8 +119,10 @@ const App = () => {
         <MechDialog
           title="Add 'Mech to lance"
           submitLabel="Add 'Mech"
-          attacker={createAttacker({ ...HIGHLANDER_HGN_732.attacker, ammoBins: fillAmmoBins(HIGHLANDER_HGN_732.ammo ?? []), name: `Highlander HGN-732 #${lance.units.length + 1}` })}
-          weapons={mountWeapons(HIGHLANDER_HGN_732.weapons, '')}
+          {...numbered(buildMech(defaultMech()))}
+          models={MECHS}
+          otherModel={OTHER_MECH}
+          fromModel={(mech) => numbered(buildMech(mech))}
           targetId=""
           onSave={add}
           onClose={() => setAdding(false)}

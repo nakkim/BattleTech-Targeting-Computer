@@ -2,9 +2,10 @@ import { spendAmmo } from '../rules/ammo'
 import { projectHeat } from '../rules/heat'
 import type { HitTable } from '../rules/tables'
 import type { Attacker, MountedWeapon, Spotter, Target } from '../rules/types'
-import { createAttacker, createTarget, defaultSpotter, fillAmmoBins, mountWeapons, newId } from './defaults'
+import { createAttacker, createTarget, defaultSpotter, newId } from './defaults'
+import { buildMech, defaultMech } from './mechCatalog'
 import { rulesAttacker } from './mode'
-import { HIGHLANDER_HGN_732, HUNCHBACK_HBK_4G, LOCUST_LCT_1V, type MechPreset } from './presets'
+import { HUNCHBACK_HBK_4G, LOCUST_LCT_1V } from './presets'
 
 /** Everything the targeting computer tracks for one 'Mech of the lance. */
 export interface UnitState {
@@ -26,14 +27,14 @@ export interface LanceState {
   turn: number
 }
 
-/** A new lance member facing a Hunchback (primary) and a Locust. Defaults to an HGN-732 Highlander. */
-export const newUnit = ({ attacker, weapons, ammo = [] }: MechPreset = HIGHLANDER_HGN_732): UnitState => {
+/** A new lance member facing a Hunchback (primary) and a Locust. Defaults to the default catalog 'Mech. */
+export const newUnit = ({ attacker, weapons }: { attacker: Attacker; weapons: MountedWeapon[] } = buildMech(defaultMech())): UnitState => {
   const target = createTarget({ ...HUNCHBACK_HBK_4G, range: 5 })
   return {
     id: newId('u'),
-    attacker: createAttacker({ ammoBins: fillAmmoBins(ammo), ...attacker }),
+    attacker,
     targets: [target, createTarget({ ...LOCUST_LCT_1V, range: 8, primary: false })],
-    weapons: mountWeapons(weapons, target.id),
+    weapons: weapons.map((w) => ({ ...w, targetId: target.id })),
     spotter: defaultSpotter(),
     attackerIsSpotting: false,
     selectedTargetId: target.id,

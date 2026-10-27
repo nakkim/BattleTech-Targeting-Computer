@@ -5,7 +5,7 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
 ## Features
 
 - **Lance**: track several 'Mechs, one tab each. Every 'Mech has its own targets, weapons, heat and damage.
-  - The **Add 'Mech** dialog sets name, skills, tonnage, heat sinks, arms (a 'Mech may have no arms or no lower arm, hand or hatchet), armor, weapons and ammo bins. The fields start with an HGN-732 Highlander.
+  - The **Add 'Mech** dialog starts from one of 33 'Mech models, three variants each of 11 'Mechs (the eight used in the rulebook's examples, plus Highlander, Catapult and Atlas), or **Other** for a blank 'Mech, then sets name, skills, tonnage, heat sinks, arms (a 'Mech may have no arms or no lower arm, hand or hatchet), armor, weapons and ammo bins.
   - The **'Mech data** card shows these values. Its **Edit** button opens the same dialog.
 - **Weapon attacks**: G.A.T.O.R. Target Number per weapon with a full modifier breakdown, the 2D6 hit chance and the expected damage.
   - Gunnery, attacker movement, prone attacker, target movement (TMM), jumping, prone and immobile targets.
@@ -43,4 +43,4 @@ npm run lint           # oxlint
 npm run build          # type-check and production build
 ```
 
-The rules engine lives in `src/rules/` as pure functions. Its tests check the rulebook's worked examples (p. 18, 26, 28), plus ammo, damage transfer and ammo explosions. 'Mech presets are in `src/state/presets.ts`.
+The rules engine lives in `src/rules/` as pure functions. Its tests check the rulebook's worked examples (p. 18, 26, 28), plus ammo, damage transfer and ammo explosions. 'Mech models are in `src/mechs/`, one file each; see `src/mechs/README.md` for adding one.

@@ -7,6 +7,7 @@ import { projectHeat } from './heat'
 import { resolvePhysicalAttack } from './physicalAttack'
 import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationChances, targetMovementModifier, WEAPONS_BY_KEY } from './tables'
 import type { Attacker, Location, Target } from './types'
+import { buildMech, MECHS } from '../state/mechCatalog'
 import { advanceTurn, newUnit } from '../state/unit'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
 
@@ -327,7 +328,8 @@ describe('armor and internal structure', () => {
 
 describe('plain 2D6 mode', () => {
   it('spends ammo on the next turn only while tracking', () => {
-    const unit = newUnit()
+    // The Highlander fires SRM 6, LRM 20 and Gauss: 3 shots a turn.
+    const unit = newUnit(buildMech(MECHS.find((m) => m.name === 'Highlander HGN-732')!))
     const shots = (u: typeof unit) => u.attacker.ammoBins.reduce((sum, b) => sum + b.shots, 0)
     expect(shots(advanceTurn(unit))).toBe(shots(unit) - 3)
     expect(shots(advanceTurn(unit, false))).toBe(shots(unit))

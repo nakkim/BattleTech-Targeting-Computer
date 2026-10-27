@@ -93,19 +93,12 @@ export const newWeapon = (weaponKey: string, location: MountedWeapon['location']
   return { id: newId('w'), weaponKey, location, rear: false, fire: true, targetId, indirect: false, aimedAt: null }
 }
 
-/** Weapons and the locations they are mounted in, as on the record sheet. */
-export type Loadout = [weaponKey: string, location: Location][]
-
-export const mountWeapons = (loadout: Loadout, targetId: string): MountedWeapon[] => {
-  return loadout.map(([weaponKey, location]) => newWeapon(weaponKey, location, targetId))
-}
-
 /** A full one-ton ammo bin. */
 export const newAmmoBin = (weaponKey: string, location: Location): AmmoBin => {
   return { id: newId('a'), weaponKey, location, shots: shotsPerBin(weaponKey) }
 }
 
 /** Full ammo bins, one per [weapon type, location] entry. */
-export const fillAmmoBins = (bins: Loadout): AmmoBin[] => {
+export const fillAmmoBins = (bins: [weaponKey: string, location: Location][]): AmmoBin[] => {
   return bins.map(([weaponKey, location]) => newAmmoBin(weaponKey, location))
 }

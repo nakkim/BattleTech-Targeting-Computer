@@ -5,6 +5,7 @@ import { LOCATION_NAMES, LOCATIONS, WEAPONS_BY_KEY } from '../rules/tables'
 import { facingLocation, maxArmor, maxArmorFacings, REAR_FACING, structureOf } from '../rules/damage'
 import type { AmmoBin, ArmorFacing, ArmState, Attacker, Location, MountedWeapon } from '../rules/types'
 import { newAmmoBin, newWeapon } from '../state/defaults'
+import type { MechDefinition } from '../mechs/defineMech'
 import { useTracking } from '../state/mode'
 import { Dialog } from './InfoDialog'
 import { NumberField, Toggle } from './fields'
@@ -130,6 +131,9 @@ const AmmoBinEditor = ({ bins, types, locations, onChange }: { bins: AmmoBin[]; 
   )
 }
 
+/** Model list value for a 'Mech that is not in the catalog. */
+const OTHER = 'other'
+
 interface Props {
   title: string
   submitLabel: string
@@ -139,13 +143,28 @@ interface Props {
   targetId: string
   onSave: (attacker: Attacker, weapons: MountedWeapon[]) => void
   onClose: () => void
+  /** 'Mech models to start from (Add 'Mech only). Picking one replaces the record sheet data. */
+  models?: MechDefinition[]
+  /** Blank 'Mech for the Other option. */
+  otherModel?: MechDefinition
+  fromModel?: (mech: MechDefinition) => { attacker: Attacker; weapons: MountedWeapon[] }
 }
 
 /** Record sheet data of a 'Mech: name, skills, tonnage, heat sinks, arms and weapons. */
-export const MechDialog = ({ title, submitLabel, targetId, onSave, onClose, ...initial }: Props) => {
+export const MechDialog = ({ title, submitLabel, targetId, onSave, onClose, models, otherModel, fromModel, ...initial }: Props) => {
   const [attacker, setAttacker] = useState(initial.attacker)
   const [weapons, setWeapons] = useState(initial.weapons)
   const tracking = useTracking()
+  const [model, setModel] = useState(() => models?.find((m) => initial.attacker.name.startsWith(m.name))?.name ?? OTHER)
+  const pickModel = (name: string) => {
+    const mech = name === OTHER ? otherModel : models?.find((m) => m.name === name)
+    if (!mech || !fromModel) return
+    const built = fromModel(mech)
+    // Skills belong to the MechWarrior, so they stay.
+    setAttacker({ ...built.attacker, gunnery: attacker.gunnery, piloting: attacker.piloting })
+    setWeapons(built.weapons.map((w) => ({ ...w, targetId })))
+    setModel(name)
+  }
   const set = (patch: Partial<Attacker>) => setAttacker({ ...attacker, ...patch })
 
   const mounted = weapons.filter((w) => hasLocation(attacker, w.location))
@@ -182,6 +201,19 @@ export const MechDialog = ({ title, submitLabel, targetId, onSave, onClose, ...i
           submit()
         }}
       >
+        {models && models.length > 0 && (
+          <label className="field">
+            <span className="field-label">Model</span>
+            <select value={model} onChange={(e) => pickModel(e.target.value)} title="Fill in the record sheet data of a 'Mech model. Everything stays editable.">
+              {models.map((m) => (
+                <option key={m.name} value={m.name}>
+                  {m.name} ({m.tonnage} t)
+                </option>
+              ))}
+              <option value={OTHER}>Other (blank 'Mech)</option>
+            </select>
+          </label>
+        )}
         <label className="field name-field">
           <span className="field-label">Name</span>
           <input value={attacker.name} autoFocus onChange={(e) => set({ name: e.target.value })} />
