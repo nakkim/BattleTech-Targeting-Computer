@@ -9,6 +9,7 @@ import { newId } from './state/defaults'
 import { buildMech, defaultMech, MECHS, OTHER_MECH } from './state/mechCatalog'
 import { advanceTurn, initialLance, newUnit, normalizeLance, unitName, type LanceState, type UnitState } from './state/unit'
 import { ModeContext, type AppMode } from './state/mode'
+import { pendingSteps } from './rules/heatPhase'
 import { usePersistentState } from './state/usePersistentState'
 import type { Attacker, MountedWeapon } from './rules/types'
 import './App.css'
@@ -76,6 +77,8 @@ const App = () => {
     if (confirm('Reset the whole lance to defaults?')) setLance(initialLance())
   }
 
+  // Every Heat Phase roll and its damage must be in before the next turn.
+  const pendingHeatPhase = mode === 'tracking' ? lance.units.reduce((sum, u) => sum + (u.heatPhase ? pendingSteps(u.heatPhase, u.attacker) : 0), 0) : 0
   const newTurn = () => updateLance((l) => ({ ...l, units: l.units.map((u) => advanceTurn(u, mode === 'tracking')), turn: l.turn + 1 }))
 
   return (
@@ -95,9 +98,12 @@ const App = () => {
           <Switch label="Mode" value={mode} options={MODES} onChange={setMode} />
           <Switch label="Theme" value={theme} options={THEMES} onChange={setTheme} />
           <div className="turn-control">
-            <button type="button" onClick={newTurn} title={`For every 'Mech: clear movement, apply projected heat${mode === 'tracking' ? ', spend ammo' : ''}, reset weapon fire`}>
-              Next turn
-            </button>
+            {/* The tooltip sits on a wrapper: disabled buttons get no hover events in some browsers. */}
+            <span className="turn-button" title={pendingHeatPhase > 0 ? 'Resolve heat phase' : `For every 'Mech: clear movement, apply projected heat${mode === 'tracking' ? ', spend ammo' : ''}, reset weapon fire`}>
+              <button type="button" onClick={newTurn} disabled={pendingHeatPhase > 0}>
+                Next turn
+              </button>
+            </span>
             <span className="turn-counter" aria-live="polite">
               Turn {lance.turn}
             </span>

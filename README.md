@@ -22,7 +22,13 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
 - **Physical attacks**: punch, kick, club, hatchet, push, charge and DFA. Shows Target Numbers, damage groups, hit tables, level differences and actuator damage.
 - **Hit location**: chance of each location by attack direction (standard, punch and kick tables), plus the Cluster Hits Table.
 - **Heat**: projects heat after the Heat Phase and shows the heat effects. At 19 heat or more it shows the roll to avoid an ammo explosion and which bin would explode.
-- **Next turn** advances the turn counter. For every 'Mech it clears movement, carries the projected heat into the next turn and removes the ammo fired.
+- **Next turn** advances the turn counter. For every 'Mech it clears movement, carries the projected heat into the next turn and removes the ammo fired. In Track stats mode it stays disabled ("Resolve heat phase") until every Heat Phase roll is entered and its damage applied.
+- **Heat Phase rolls** (Track stats mode): all dice are rolled on the table. After **Next turn**, the Heat card lists the rolls the Heat Phase needs, and you click each 2D6 result:
+  - **Shutdown** at 14 heat or more, automatic at 30. A shut down 'Mech cannot move or attack, and tries to restart in the following Heat Phases (automatically below 14 heat).
+  - **Piloting Skill Roll** at +3 plus leg damage when a standing 'Mech shuts down. On a fall the 'Mech goes prone, and you click the 1D6 Facing After Fall roll and a 2D6 hit location roll for each 5-point group of falling damage. **Apply falling damage** applies each group, with Undo.
+  - **Ammo explosion** at 19 heat or more. On a failure it explodes the bin with the most damage per shot, or the one you pick between equal ones, with Undo.
+  - Lance tabs show **ROLL n** while results are missing, and **SHUT DOWN** for a shut down 'Mech. The 'Mech card also has a **Shut down** switch for corrections and voluntary shutdown.
+  - In Plain 2D6 mode the Heat card only lists the rolls the Heat Phase calls for; you resolve them on the record sheet.
 - **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Plain 2D6 only works out hit or miss: ammo never runs out, and the armor, ammunition and ammo explosion parts are hidden. Tracked values are kept for switching back.
 - **Theme**: a header switch picks light or dark. The first visit follows the system setting.
 - Cards can be hidden, and the app saves its state in localStorage.

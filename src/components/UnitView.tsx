@@ -6,7 +6,7 @@ import { drawAmmo, firingWeapons } from '../rules/ammo'
 import { declaredWeapons } from '../rules/destruction'
 import { checkTargets, resolveWeaponAttack, type WeaponAttackResult } from '../rules/weaponAttack'
 import { rulesAttacker, useTracking } from '../state/mode'
-import type { UnitState } from '../state/unit'
+import { applyFallDamage, enterFallRoll, enterHeatRoll, explodeHeatAmmo, undoFallDamage, undoHeatExplosion, type UnitState } from '../state/unit'
 import { AttackerPanel, MechDataPanel } from './AttackerPanel'
 import { DamagePanel } from './DamagePanel'
 import { HeatPanel } from './HeatPanel'
@@ -120,7 +120,19 @@ export const UnitView = ({ unit, onChange }: Props) => {
         />
         <div className="grid-results">
           <HitLocationPanel target={selectedTarget} />
-          <HeatPanel attacker={unit.attacker} projection={heat} />
+          <HeatPanel
+            attacker={unit.attacker}
+            projection={heat}
+            phase={unit.heatPhase}
+            phaseActions={{
+              onRoll: (roll, value) => onChange((u) => enterHeatRoll(u, roll, value)),
+              onExplode: (binId) => onChange((u) => explodeHeatAmmo(u, binId)),
+              onUndoExplosion: () => onChange(undoHeatExplosion),
+              onFallRoll: (roll, value) => onChange((u) => enterFallRoll(u, roll, value)),
+              onApplyFall: () => onChange(applyFallDamage),
+              onUndoFall: () => onChange(undoFallDamage),
+            }}
+          />
         </div>
       </div>
     </main>

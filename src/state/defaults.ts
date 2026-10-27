@@ -40,6 +40,7 @@ export const createAttacker = ({ leftArm, rightArm, ...options }: AttackerOption
   hexesMoved: 0,
   prone: false,
   heat: 0,
+  shutdown: false,
   sensorHits: 0,
   waterDepth: 0,
   armsFlipped: false,

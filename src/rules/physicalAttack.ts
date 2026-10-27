@@ -145,6 +145,7 @@ export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAtt
   let attackerDamage = 0
 
   if (isMechDestroyed(attacker)) reasons.push('’Mech destroyed')
+  if (attacker.shutdown) reasons.push('’Mech is shut down')
   if (attacker.prone) reasons.push('Prone ’Mechs cannot make physical attacks')
   const armsLost = (['LA', 'RA'] as const).filter((loc) => isLocationDestroyed(attacker, loc))
   const legsLost = (['LL', 'RL'] as const).filter((loc) => isLocationDestroyed(attacker, loc))

@@ -60,6 +60,8 @@ export interface Attacker {
   hexesMoved: number
   prone: boolean
   heat: number
+  /** Power plant shut down by heat (p. 38): the 'Mech cannot move or attack. */
+  shutdown: boolean
   sensorHits: number
   /** 0 = dry, 1 = Depth 1, 2 = Depth 2 or deeper. */
   waterDepth: number

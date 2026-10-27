@@ -1,5 +1,6 @@
 import { isMechDestroyed } from '../rules/destruction'
 import { projectHeat } from '../rules/heat'
+import { pendingSteps } from '../rules/heatPhase'
 import { rulesAttacker, useTracking } from '../state/mode'
 import type { LanceState } from '../state/unit'
 
@@ -10,9 +11,11 @@ export const StatusLine = ({ lance }: { lance: LanceState }) => {
   const lost = lance.units.filter((u) => isMechDestroyed(u.attacker)).length
   const next = projectHeat(rulesAttacker(active.attacker, tracking), active.weapons).next
   const units = lance.units.length
+  const rolls = !tracking ? 0 : lance.units.reduce((sum, u) => sum + (u.heatPhase ? pendingSteps(u.heatPhase, u.attacker) : 0), 0)
   return (
     <div className="status-line">
       {lost > 0 ? <span className="status-alert">{lost} destroyed</span> : <span className="status-ok">Sys OK</span>}
+      {rolls > 0 && <span className="status-alert">{` · Heat Phase: ${rolls} ${rolls === 1 ? 'step' : 'steps'} due`}</span>}
       {` · Turn ${lance.turn} · ${units} ${units === 1 ? 'unit' : 'units'} · Mode: ${tracking ? 'track' : 'plain'} · Heat ${active.attacker.heat}→${next}`}
     </div>
   )

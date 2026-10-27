@@ -205,6 +205,7 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
         <Toggle label="Torso twisted" checked={attacker.torsoTwisted} onChange={(v) => set({ torsoTwisted: v, armsFlipped: v ? false : attacker.armsFlipped, prone: v ? false : attacker.prone })} />
         <Toggle label="Arms flipped" checked={attacker.armsFlipped && anyArm} disabled={!anyArm} title={anyArm ? undefined : 'This ’Mech has no arms'} onChange={(v) => set({ armsFlipped: v, torsoTwisted: v ? false : attacker.torsoTwisted, prone: v ? false : attacker.prone })} />
         <Toggle label="Holding club" checked={attacker.hasClub} onChange={(v) => set({ hasClub: v })} />
+        <Toggle label="Shut down" checked={attacker.shutdown} onChange={(v) => set({ shutdown: v })} title="Power plant shut down by heat or by choice: the ’Mech cannot move or attack" />
       </div>
       {attacker.prone && leftArm.present && rightArm.present && (
         <Segmented

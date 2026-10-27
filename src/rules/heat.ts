@@ -50,13 +50,14 @@ export const workingHeatSinks = (attacker: Pick<Attacker, 'heatSinks' | 'heatSin
 
 export const projectHeat = (attacker: Attacker, weapons: MountedWeapon[]): HeatProjection => {
   const lines: HeatLine[] = []
-  const move = movementHeat(attacker)
+  // A shut down 'Mech cannot move or fire, and its engine hits make no heat (p. 38).
+  const move = attacker.shutdown ? 0 : movementHeat(attacker)
   if (move > 0) lines.push({ label: `Movement (${attacker.movement})`, value: move })
   for (const w of firingWeapons(attacker, weapons)) {
     const spec = WEAPONS_BY_KEY[w.weaponKey]
     if (spec.heat > 0) lines.push({ label: `${spec.name} [${w.location}${w.rear ? ' R' : ''}]`, value: spec.heat })
   }
-  if (attacker.engineHits > 0) lines.push({ label: `Engine hits (${attacker.engineHits})`, value: attacker.engineHits >= 2 ? 10 : 5 })
+  if (attacker.engineHits > 0 && !attacker.shutdown) lines.push({ label: `Engine hits (${attacker.engineHits})`, value: attacker.engineHits >= 2 ? 10 : 5 })
   const generated = lines.reduce((s, l) => s + l.value, 0)
   const working = workingHeatSinks(attacker)
   const waterBonus = Math.min(6, Math.min(attacker.submergedHeatSinks, working))

@@ -8,7 +8,8 @@ import { resolvePhysicalAttack } from './physicalAttack'
 import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationChances, targetMovementModifier, WEAPONS_BY_KEY } from './tables'
 import type { Attacker, Location, Target } from './types'
 import { buildMech, MECHS } from '../state/mechCatalog'
-import { advanceTurn, newUnit, unitName } from '../state/unit'
+import { advanceTurn, applyFallDamage, enterFallRoll, enterHeatRoll, explodeHeatAmmo, newUnit, undoFallDamage, undoHeatExplosion, unitName } from '../state/unit'
+import { fallDamage, fallHitLocation, fallSide, fiveGroups, pendingSteps, powerCheck, psrDamageModifiers, shutdownPsr } from './heatPhase'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
 
 const attacker = createAttacker
@@ -356,5 +357,144 @@ describe('unitName', () => {
 
   it('does not treat a longer model name as the same model', () => {
     expect(unitName('Atlas AS7-D', ['Atlas AS7-D-DC', 'Atlas AS7-D (copy)'])).toBe('Atlas AS7-D')
+  })
+})
+
+describe('Heat Phase rolls', () => {
+  // No heat sinks and no weapons: the heat set here is the heat after the Heat Phase.
+  const heatedUnit = (heat: number, options: Parameters<typeof createAttacker>[0] = {}) =>
+    newUnit({ attacker: createAttacker({ heat, heatSinks: 0, tonnage: 85, piloting: 5, ...options }), weapons: [] })
+
+  it('asks for the highest shutdown Avoid number reached, and shuts down automatically at 30', () => {
+    expect(powerCheck({ heat: 13, wasShutdown: false })).toEqual({ kind: 'none' })
+    expect(powerCheck({ heat: 14, wasShutdown: false })).toEqual({ kind: 'shutdown', target: 4 })
+    expect(powerCheck({ heat: 27, wasShutdown: false })).toEqual({ kind: 'shutdown', target: 10 })
+    expect(powerCheck({ heat: 30, wasShutdown: false })).toEqual({ kind: 'auto-shutdown' })
+  })
+
+  it('restarts a shut down Mech on the same roll, automatically below 14 and never at 30+', () => {
+    expect(powerCheck({ heat: 10, wasShutdown: true })).toEqual({ kind: 'auto-restart' })
+    expect(powerCheck({ heat: 18, wasShutdown: true })).toEqual({ kind: 'restart', target: 6 })
+    expect(powerCheck({ heat: 31, wasShutdown: true })).toEqual({ kind: 'no-restart' })
+  })
+
+  it('shuts down on a failed roll, then needs a PSR at +3 not to fall', () => {
+    let unit = advanceTurn(heatedUnit(18))
+    expect(unit.heatPhase?.heat).toBe(18)
+    expect(unit.attacker.shutdown).toBe(false)
+    expect(pendingSteps(unit.heatPhase!, unit.attacker)).toBe(1)
+
+    unit = enterHeatRoll(unit, 'powerRoll', 5)
+    expect(unit.attacker.shutdown).toBe(true)
+    expect(shutdownPsr(unit.attacker).target).toBe(8)
+    expect(pendingSteps(unit.heatPhase!, unit.attacker)).toBe(1)
+
+    unit = enterHeatRoll(unit, 'psrRoll', 7)
+    expect(unit.attacker.prone).toBe(true)
+    unit = enterHeatRoll(unit, 'psrRoll', 8)
+    expect(unit.attacker.prone).toBe(false)
+
+    // Passing the shutdown roll after all clears the PSR.
+    unit = enterHeatRoll(unit, 'powerRoll', 6)
+    expect(unit.attacker.shutdown).toBe(false)
+    expect(unit.heatPhase?.psrRoll).toBeNull()
+    expect(pendingSteps(unit.heatPhase!, unit.attacker)).toBe(0)
+  })
+
+  it('stops a shut down Mech from firing and its engine from making heat', () => {
+    const { attacker, weapons } = buildMech(MECHS.find((m) => m.name === 'Highlander HGN-732')!)
+    const shutdown = { ...attacker, shutdown: true, engineHits: 1 }
+    expect(firingWeapons(shutdown, weapons)).toEqual([])
+    expect(projectHeat(shutdown, weapons).generated).toBe(0)
+    expect(resolveWeaponAttack(weapons[0], { attacker: shutdown, target: createTarget(), spotter: defaultSpotter(), attackerIsSpotting: false }).reasons).toContain('’Mech is shut down')
+  })
+
+  it('falls automatically when shut down at 30 heat with a PSR above 12', () => {
+    const unit = advanceTurn(heatedUnit(30, { piloting: 5, leftLeg: { hipHit: true, upperLegHit: false, lowerLegHit: false, footHit: false }, rightLeg: { hipHit: true, upperLegHit: false, lowerLegHit: false, footHit: false } }))
+    expect(unit.attacker.shutdown).toBe(true)
+    expect(shutdownPsr(unit.attacker).target).toBe(12)
+    const worse = advanceTurn(heatedUnit(30, { piloting: 6, leftLeg: { hipHit: true, upperLegHit: false, lowerLegHit: false, footHit: false }, rightLeg: { hipHit: true, upperLegHit: false, lowerLegHit: false, footHit: false } }))
+    expect(worse.attacker.prone).toBe(true)
+    // No roll is due, only the falling damage.
+    expect(pendingSteps(worse.heatPhase!, worse.attacker)).toBe(1)
+  })
+
+  it('counts preexisting leg damage, with a hip replacing the leg actuators', () => {
+    const attacker = createAttacker({
+      leftLeg: { hipHit: true, upperLegHit: true, lowerLegHit: false, footHit: true },
+      rightLeg: { hipHit: false, upperLegHit: true, lowerLegHit: false, footHit: true },
+    })
+    expect(psrDamageModifiers(attacker).map((m) => m.value)).toEqual([2, 2])
+    expect(psrDamageModifiers({ ...attacker, destroyedLocations: ['LL'] }).map((m) => m.value)).toEqual([5, 2])
+  })
+
+  it('deals falling damage of 1 per 10 tons in 5-point groups, halved in water', () => {
+    expect(fallDamage({ tonnage: 85, waterDepth: 0 })).toBe(9)
+    expect(fiveGroups(9)).toEqual([5, 4])
+    expect(fallDamage({ tonnage: 85, waterDepth: 1 })).toBe(4)
+  })
+
+  it('explodes the most damaging bin on a failed ammo roll, and undoes it', () => {
+    const lrm = { ...newAmmoBin('LRM20', 'LT'), shots: 2 }
+    const unit0 = advanceTurn(heatedUnit(19, { ammoBins: [lrm, newAmmoBin('MG', 'RT')] }))
+    expect(unit0.heatPhase?.ammoTarget).toBe(4)
+    let unit = enterHeatRoll(unit0, 'ammoRoll', 3)
+    expect(pendingSteps(unit.heatPhase!, unit.attacker)).toBe(2)
+    unit = enterHeatRoll(unit, 'powerRoll', 6)
+    unit = explodeHeatAmmo(unit, lrm.id)
+    expect(pendingSteps(unit.heatPhase!, unit.attacker)).toBe(0)
+    // 2 shots × 20 = 40 to the left torso's internal structure (18 at 85 tons), the rest to the center torso.
+    expect(unit.attacker.structureDamage).toEqual({ LT: 18, CT: 22 })
+    expect(unit.attacker.armorDamage).toEqual({})
+    expect(unit.attacker.ammoBins[0].shots).toBe(0)
+    unit = undoHeatExplosion(unit)
+    expect(unit.attacker.structureDamage).toEqual({})
+    expect(unit.attacker.ammoBins[0].shots).toBe(2)
+  })
+
+  it('picks the Hit Location column from the Facing After Fall roll', () => {
+    expect([1, 2, 3, 4, 5, 6].map(fallSide)).toEqual(['front', 'right', 'right', 'rear', 'left', 'left'])
+    expect(fallHitLocation('rear', 7)).toBe('CT')
+    expect(fallHitLocation('left', 2)).toBe('LT')
+  })
+
+  it('applies falling damage group by group from the entered rolls, and undoes it', () => {
+    let unit = advanceTurn(heatedUnit(18))
+    unit = enterHeatRoll(enterHeatRoll(unit, 'powerRoll', 5), 'psrRoll', 7)
+    expect(unit.attacker.prone).toBe(true)
+    expect(pendingSteps(unit.heatPhase!, unit.attacker)).toBe(1)
+
+    // 85 tons: 9 damage as 5 + 4. A fall on the back hits the rear armor.
+    unit = enterFallRoll(unit, 'facing', 4)
+    unit = enterFallRoll(unit, 0, 7)
+    expect(applyFallDamage(unit)).toBe(unit)
+    unit = applyFallDamage(enterFallRoll(unit, 1, 6))
+    expect(unit.attacker.armorDamage).toEqual({ CTR: 5, RTR: 4 })
+    expect(unit.heatPhase?.fall?.hits.map((h) => [h.location, h.damage])).toEqual([
+      ['CT', 5],
+      ['RT', 4],
+    ])
+    expect(pendingSteps(unit.heatPhase!, unit.attacker)).toBe(0)
+
+    const undone = undoFallDamage(unit)
+    expect(undone.attacker.armorDamage).toEqual({})
+    expect(undone.heatPhase?.fallRolls).toEqual([7, 6])
+
+    // Correcting the PSR to a pass takes the fall back.
+    const standing = enterHeatRoll(unit, 'psrRoll', 9)
+    expect(standing.attacker.prone).toBe(false)
+    expect(standing.attacker.armorDamage).toEqual({})
+    expect(standing.heatPhase?.fall).toBeNull()
+  })
+
+  it('leaves shutdown and falls to the player in plain mode', () => {
+    const unit = advanceTurn(heatedUnit(30, { piloting: 8 }), false)
+    expect(unit.heatPhase?.heat).toBe(30)
+    expect(unit.attacker.shutdown).toBe(false)
+    expect(unit.attacker.prone).toBe(false)
+  })
+
+  it('needs no ammo roll without unemptied explosive ammo', () => {
+    expect(advanceTurn(heatedUnit(25, { ammoBins: [{ ...newAmmoBin('SRM6', 'LT'), shots: 0 }, newAmmoBin('GAUSS', 'RT')] })).heatPhase?.ammoTarget).toBeNull()
   })
 })

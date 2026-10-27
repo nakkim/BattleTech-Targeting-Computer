@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { availableBins, explosionDamage } from '../rules/ammo'
-import { applyDamage, armorLeft, damageTotals, explodeAmmo, REAR_FACING, structureLeft, structureOf, type DamageResult } from '../rules/damage'
+import { applyDamage, armorLeft, damageTotals, explodeAmmo, REAR_FACING, structureLeft, structureOf, type DamageResult, type DamageStep } from '../rules/damage'
 import { destroyedReason, hasLocation, isMechDestroyed } from '../rules/destruction'
 import { LOCATION_NAMES, LOCATIONS, WEAPONS_BY_KEY } from '../rules/tables'
 import type { ArmorFacing, Attacker, Location } from '../rules/types'
@@ -30,37 +30,65 @@ const Remaining = ({ left, max }: { left: number; max: number }) => (
   </span>
 )
 
-/** What a hit did, location by location. */
-const HitReport = ({ hit, onUndo }: { hit: LastHit; onUndo: () => void }) => {
-  const { steps, lost, attacker } = hit.result
+/** One hit of a report: what each location took, in order. */
+export interface HitGroup {
+  /** Shown above the group when a report has several hits, e.g. "5 to the center torso". */
+  label?: string
+  steps: DamageStep[]
+  lost: number
+}
+
+interface HitReportProps {
+  label: string
+  groups: HitGroup[]
+  /** An ammo explosion, which also injures the MechWarrior. */
+  explosion: boolean
+  /** The 'Mech after the hit. */
+  attacker: Attacker
+  onUndo: () => void
+}
+
+/** What each location took from one hit. Damage after the first location transferred inward. */
+const StepItems = ({ steps }: { steps: DamageStep[] }) =>
+  steps.map((s, i) => (
+    <li key={i} className={s.destroyed ? 'msg-error' : s.structure > 0 ? 'msg-warn' : 'msg-note'}>
+      {i > 0 && 'Transferred: '}
+      {LOCATION_NAMES[s.location]}
+      {s.facing && s.facing !== s.location && ' (rear)'}
+      {': '}
+      {[s.facing ? `${s.armor} armor` : 'armor bypassed', (s.structure > 0 || !s.facing) && `${s.structure} internal structure`].filter(Boolean).join(', ')}
+      {s.destroyed ? ' — destroyed.' : '.'}
+      {s.structure > 0 && !s.destroyed && ' Roll for a critical hit.'}
+      {s.destroyed && (s.location === 'LT' || s.location === 'RT') && ' The arm is blown off.'}
+    </li>
+  ))
+
+/** What a hit, or several, did location by location. */
+export const HitReport = ({ label, groups, explosion, attacker, onUndo }: HitReportProps) => {
+  const steps = groups.flatMap((g) => g.steps)
+  const lost = groups.reduce((sum, g) => sum + g.lost, 0)
   return (
     <div className="hit-report">
       <div className="hit-report-header">
-        <strong>{hit.label}</strong>
+        <strong>{label}</strong>
         <button type="button" className="small ghost" onClick={onUndo} title="Restore armor, internal structure, destroyed locations and ammo from before this hit">
           Undo
         </button>
       </div>
       <ul className="messages">
-        {steps.map((s, i) => (
-          <li key={i} className={s.destroyed ? 'msg-error' : s.structure > 0 ? 'msg-warn' : 'msg-note'}>
-            {i > 0 && 'Transferred: '}
-            {LOCATION_NAMES[s.location]}
-            {s.facing && s.facing !== s.location && ' (rear)'}
-            {': '}
-            {[s.facing ? `${s.armor} armor` : 'armor bypassed', (s.structure > 0 || !s.facing) && `${s.structure} internal structure`].filter(Boolean).join(', ')}
-            {s.destroyed ? ' — destroyed.' : '.'}
-            {s.structure > 0 && !s.destroyed && ' Roll for a critical hit.'}
-            {s.destroyed && (s.location === 'LT' || s.location === 'RT') && ' The arm is blown off.'}
-          </li>
+        {groups.map((g, i) => (
+          <Fragment key={i}>
+            {g.label && <li className="hit-group-label">{g.label}</li>}
+            <StepItems steps={g.steps} />
+          </Fragment>
         ))}
-        {hit.explosion && <li className="msg-warn">The MechWarrior takes 2 damage from the feedback.</li>}
-        {!hit.explosion && steps.some((s) => s.location === 'HD') && <li className="msg-warn">Head hit: the MechWarrior takes 1 damage.</li>}
+        {explosion && <li className="msg-warn">The MechWarrior takes 2 damage from the feedback.</li>}
+        {!explosion && steps.some((s) => s.location === 'HD') && <li className="msg-warn">Head hit: the MechWarrior takes 1 damage.</li>}
         {isMechDestroyed(attacker) && (
           <li className="msg-error">
             {attacker.destroyedLocations.includes('HD')
               ? 'Head destroyed: the MechWarrior is killed.'
-              : `Center torso destroyed: the ’Mech is destroyed${hit.explosion ? ' and the MechWarrior is killed' : ''}.`}
+              : `Center torso destroyed: the ’Mech is destroyed${explosion ? ' and the MechWarrior is killed' : ''}.`}
           </li>
         )}
         {lost > 0 && <li className="muted">{lost} damage left over.</li>}
@@ -193,7 +221,7 @@ export const DamagePanel = ({ attacker, onChange }: Props) => {
           </div>
         )}
       </fieldset>
-      {lastHit && <HitReport hit={lastHit} onUndo={undo} />}
+      {lastHit && <HitReport label={lastHit.label} groups={[lastHit.result]} explosion={lastHit.explosion} attacker={lastHit.result.attacker} onUndo={undo} />}
     </CollapsiblePanel>
   )
 }

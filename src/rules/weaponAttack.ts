@@ -162,6 +162,7 @@ export const resolveWeaponAttack = (weapon: MountedWeapon, ctx: WeaponAttackCont
   // Ability to fire at all.
   const lost = destroyedReason(attacker, weapon.location)
   if (lost) reasons.push(`${lost}: weapon cannot fire`)
+  if (attacker.shutdown) reasons.push('’Mech is shut down')
   if (ctx.outOfAmmo) reasons.push('Out of ammo')
   if (attacker.sensorHits >= 2) reasons.push('Two sensor hits: cannot fire weapons')
   if (attacker.prone && (isLocationDestroyed(attacker, 'LA') || isLocationDestroyed(attacker, 'RA')))

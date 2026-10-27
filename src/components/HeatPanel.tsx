@@ -3,19 +3,21 @@ import type { HeatProjection } from '../rules/heat'
 import { heatEffects, workingHeatSinks } from '../rules/heat'
 import { ammoExplosionAvoid, LOCATION_NAMES, WEAPONS_BY_KEY } from '../rules/tables'
 import type { Attacker } from '../rules/types'
+import type { HeatPhase } from '../rules/heatPhase'
 import { useTracking } from '../state/mode'
 import { Panel } from './fields'
+import { HeatPhaseRolls, type HeatPhaseActions } from './HeatPhaseRolls'
 
 /** Which bin explodes if the heat explosion roll fails, and what it does. */
 const AmmoAtRisk = ({ attacker, heat }: { attacker: Attacker; heat: number }) => {
   const avoid = ammoExplosionAvoid(heat)
   if (avoid === null) return null
   const bins = heatExplosionCandidates(attacker)
-  if (bins.length === 0) return <p className="muted">Ammo explosion check at {heat} heat: no unemptied explosive ammo, so no roll.</p>
+  if (bins.length === 0) return <p className="muted">Heat {heat} after this turn: no unemptied explosive ammo, so no ammo explosion roll.</p>
   return (
     <div className="ammo-risk msg-warn-text">
       <strong>
-        Ammo explosion at {heat} heat: roll {avoid}+ on 2D6 to avoid.
+        Heat {heat} after this turn: the Heat Phase needs {avoid}+ on 2D6 to avoid an ammo explosion.
       </strong>{' '}
       On a failure {bins.length > 1 ? 'one of these bins explodes (your choice)' : 'this bin explodes'}:
       <ul>
@@ -31,13 +33,22 @@ const AmmoAtRisk = ({ attacker, heat }: { attacker: Attacker; heat: number }) =>
   )
 }
 
-export const HeatPanel = ({ attacker, projection }: { attacker: Attacker; projection: HeatProjection }) => {
+interface HeatPanelProps {
+  attacker: Attacker
+  projection: HeatProjection
+  /** Rolls of the last Heat Phase, null before the first. */
+  phase: HeatPhase | null
+  phaseActions: HeatPhaseActions
+}
+
+export const HeatPanel = ({ attacker, projection, phase, phaseActions }: HeatPanelProps) => {
   const tracking = useTracking()
   const current = attacker.heat
   const now = heatEffects(current)
   const level = Math.min(30, projection.next)
   return (
     <Panel title="Heat" className="heat">
+      {phase && <HeatPhaseRolls phase={phase} attacker={attacker} tracking={tracking} {...phaseActions} />}
       <div className="heat-gauge" aria-label={`Projected heat ${projection.next}`}>
         <span className="heat-fill" style={{ width: `${(level / 30) * 100}%` }} />
         {[5, 8, 13, 14, 17, 19, 24, 30].map((mark) => (
