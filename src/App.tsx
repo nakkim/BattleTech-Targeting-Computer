@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Switch } from './components/fields'
 import { MechDialog } from './components/MechDialog'
+import { StatusLine } from './components/StatusLine'
 import { Typewriter } from './components/Typewriter'
 import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
@@ -127,6 +128,7 @@ const App = () => {
       <UnitView key={active.id} unit={active} onChange={updateActive} />
 
       <footer className="app-footer">
+        <StatusLine lance={lance} />
         Roll 2D6 equal to or above the Target Number. TN ≤ 2 always hits; TN &gt; 12 always misses. Rules per the BattleTech box set rulebook.
         <p>
           <a href="https://github.com/nakkim/BattleTech-Targeting-Computer" target="_blank" rel="noreferrer">

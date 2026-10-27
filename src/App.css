@@ -91,7 +91,7 @@ button {
   border: 1px solid var(--primary);
   background: var(--primary);
   color: var(--primary-text);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 6px 12px;
   font-weight: 600;
 }
@@ -128,9 +128,8 @@ button.danger:hover {
   color: var(--bg);
 }
 
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
+/* Checkboxes cannot be inverted, so they keep an outline on keyboard focus. */
+input[type='checkbox']:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 1px;
 }
@@ -166,7 +165,7 @@ select:focus-visible {
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   min-width: 0;
 }
 
@@ -175,7 +174,7 @@ select:focus-visible {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px double var(--border);
 }
 
 .panel-header h2 {
@@ -223,7 +222,7 @@ input:not([type='checkbox']),
 select {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 6px 8px;
   min-width: 0;
 }
@@ -256,12 +255,12 @@ select {
 }
 
 .stepper button:first-child {
-  border-radius: 6px 0 0 6px;
+  border-radius: 0;
   border-right: none;
 }
 
 .stepper button:last-child {
-  border-radius: 0 6px 6px 0;
+  border-radius: 0;
   border-left: none;
 }
 
@@ -298,7 +297,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -370,7 +369,7 @@ input[type='checkbox'] {
 
 details.damage {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 8px 10px;
   background: var(--surface-2);
 }
@@ -393,8 +392,8 @@ details.damage[open] summary {
 }
 
 fieldset.limb {
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px dashed var(--border);
+  border-radius: 0;
   margin: 0;
   padding: 8px 10px;
   display: flex;
@@ -465,7 +464,7 @@ fieldset.limb .toggle {
   font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--amber-dim);
   color: var(--amber);
 }
@@ -499,7 +498,7 @@ fieldset.limb .toggle {
 
 .weapon {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--surface-2);
 }
 
@@ -594,7 +593,7 @@ fieldset.limb .toggle {
   letter-spacing: 0.05em;
   text-align: center;
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: 0;
   border: 1px solid var(--border);
   color: var(--text-dim);
 }
@@ -626,7 +625,7 @@ fieldset.limb .toggle {
   font-family: var(--mono);
   line-height: 1.1;
   padding: 4px 6px;
-  border-radius: 6px;
+  border-radius: 0;
   min-width: 80px;
 }
 
@@ -729,7 +728,7 @@ fieldset.limb .toggle {
   font-size: 0.7rem;
   font-weight: 800;
   text-align: center;
-  border-radius: 4px;
+  border-radius: 0;
   padding: 1px 0;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -782,8 +781,25 @@ fieldset.limb .toggle {
 
 .messages li {
   padding: 4px 8px;
-  border-radius: 4px;
-  border-left: 3px solid;
+  border-radius: 0;
+}
+
+/* Terminal-style prefixes: ! error, * warning, > note. */
+.messages li:is(.msg-error, .msg-warn, .msg-note)::before {
+  margin-right: 0.6em;
+  font-weight: 700;
+}
+
+.messages li.msg-error::before {
+  content: '!';
+}
+
+.messages li.msg-warn::before {
+  content: '*';
+}
+
+.messages li.msg-note::before {
+  content: '>';
 }
 
 .msg-error {
@@ -923,7 +939,7 @@ fieldset.limb .toggle {
 .bar {
   height: 8px;
   background: var(--surface-2);
-  border-radius: 4px;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -931,7 +947,7 @@ fieldset.limb .toggle {
   display: block;
   height: 100%;
   background: var(--ink);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .hit-pct {
@@ -969,7 +985,7 @@ table.cluster tbody th {
 .heat-gauge {
   position: relative;
   height: 14px;
-  border-radius: 7px;
+  border-radius: 0;
   background: var(--surface-2);
   border: 1px solid var(--border);
   overflow: hidden;
@@ -1035,7 +1051,7 @@ table.cluster tbody th {
 .app-footer {
   margin-top: 24px;
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 3px double var(--border);
   color: var(--text-dim);
   font-size: 0.78rem;
   text-align: center;
@@ -1075,7 +1091,7 @@ table.cluster tbody th {
   flex: 0 0 auto;
   border: 1px solid var(--border);
   border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  border-radius: 0;
   background: var(--surface-2);
   margin-bottom: -1px;
 }
@@ -1095,7 +1111,7 @@ table.cluster tbody th {
   background: none;
   color: var(--text-dim);
   padding: 6px 12px;
-  border-radius: 8px 8px 0 0;
+  border-radius: 0;
   font-weight: 600;
   max-width: 220px;
 }
@@ -1215,7 +1231,7 @@ table.cluster tbody th {
   width: 26px;
   height: 26px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--surface-2);
   color: var(--ink);
 }
@@ -1262,7 +1278,7 @@ table.cluster tbody th {
   max-height: calc(100vh - 32px);
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
@@ -1326,7 +1342,7 @@ table.cluster tbody th {
   gap: 10px;
   padding: 4px 4px 4px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--surface-2);
 }
 
@@ -1450,7 +1466,7 @@ table.cluster tbody th {
   gap: 8px;
   align-items: center;
   padding: 3px 6px;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .arc-legend li.selected {
@@ -1460,7 +1476,7 @@ table.cluster tbody th {
 .arc-legend .swatch {
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .arc-legend-name {
@@ -1680,7 +1696,7 @@ table.cluster tbody th {
   flex: 0 0 auto;
   width: 10px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: 0;
   background: var(--tone);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
@@ -1773,7 +1789,7 @@ table.cluster tbody th {
   font-size: 0.72rem;
   font-weight: 700;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--red-dim);
   color: var(--red);
 }
@@ -1976,4 +1992,74 @@ table.cluster tbody th {
   .typewriter-caret {
     display: none;
   }
+}
+
+/* Retro terminal touches. */
+
+/* Card titles read like terminal headings: [ WEAPON ATTACKS ]. */
+.panel-header h2::before {
+  content: '[ ';
+}
+
+.panel-header h2::after {
+  content: ' ]';
+}
+
+/* Field labels and section legends get a dim prompt. The ammo legend holds a toggle button, so it has none. */
+.field-label::before,
+.limb:not(.ammo) > legend::before {
+  content: '> ';
+  opacity: 0.6;
+}
+
+/* Faint CRT scanlines over the whole page. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.035) 2px 3px);
+}
+
+:root:not([data-theme='light']) body::after {
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.09) 2px 3px);
+}
+
+@media (prefers-contrast: more) {
+  body::after {
+    display: none;
+  }
+}
+
+/* Phosphor glow, dark mode only. */
+:root:not([data-theme='light']) :is(.app-header h1, .panel-header h2, .typewriter, .tn-number, .heat-total) {
+  text-shadow: 0 0 6px rgba(242, 243, 245, 0.35);
+}
+
+:root:not([data-theme='light']) .tn-good .tn-number {
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.45);
+}
+
+/* Keyboard focus inverts the control, like a selected menu item. */
+:is(button, select, input:not([type='checkbox']), summary):focus-visible {
+  outline: none;
+  box-shadow: none;
+  background: var(--ink) !important;
+  color: var(--bg) !important;
+}
+
+/* System status line at the top of the footer. */
+.status-line {
+  margin-bottom: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.status-ok {
+  color: var(--accent);
+}
+
+.status-alert {
+  color: var(--red);
 }
