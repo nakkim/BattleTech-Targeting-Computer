@@ -330,7 +330,9 @@ select {
 
 .damage .limb .toggle {
   font-size: 0.85rem;
-  white-space: nowrap;
+  /* Long labels wrap on narrow screens instead of spilling out of the fieldset. */
+  align-items: flex-start;
+  overflow-wrap: anywhere;
 }
 
 .damage .limb legend {
@@ -365,6 +367,8 @@ input[type='checkbox'] {
   width: 16px;
   height: 16px;
   margin: 0;
+  /* Keep the box full size next to a label that wraps. */
+  flex: none;
 }
 
 details.damage {
