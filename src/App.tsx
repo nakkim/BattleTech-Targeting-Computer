@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Switch } from './components/fields'
 import { MechDialog } from './components/MechDialog'
+import { Typewriter } from './components/Typewriter'
 import { LanceTabs } from './components/LanceTabs'
 import { UnitView } from './components/UnitView'
 import { createAttacker, fillAmmoBins, mountWeapons, newId } from './state/defaults'
@@ -81,7 +82,9 @@ const App = () => {
             <span className="crosshair" aria-hidden="true" />
             Targeting Computer
           </h1>
-          <p className="subtitle">BattleTech: A Game of Armored Combat · attack phase calculator</p>
+          <p className="subtitle">
+            <Typewriter text="BattleTech: A Game of Armored Combat · attack phase calculator " />
+          </p>
         </div>
         <div className="header-actions">
           <Switch label="Mode" value={mode} options={MODES} onChange={setMode} />

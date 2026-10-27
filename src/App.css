@@ -1946,3 +1946,34 @@ table.cluster tbody th {
 .mode-switch button {
   white-space: nowrap;
 }
+
+.typewriter-rest {
+  visibility: hidden;
+}
+
+/* Block caret over the next character; the negative margin keeps it from pushing the text. */
+.typewriter-caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-right: -0.5em;
+  vertical-align: -0.12em;
+  background: currentColor;
+  opacity: 0.7;
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typewriter-caret {
+    display: none;
+  }
+}
