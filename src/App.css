@@ -1896,7 +1896,7 @@ table.cluster tbody th {
 }
 
 .heat-phase h3,
-.heat-roll h4 {
+.dice-roll h4 {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1904,18 +1904,60 @@ table.cluster tbody th {
   margin: 0;
 }
 
-.heat-roll {
+.dice-roll {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.heat-roll p {
+.dice-roll-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dice-roll p {
   margin: 0;
 }
 
-.heat-roll > :is(.msg-ok, .msg-error) {
+.dice-roll > :is(.msg-ok, .msg-error) {
   padding: 4px 8px;
+}
+
+.psr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 0.85rem;
+}
+
+.psr-list .dice-roll + .dice-roll {
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+.add-psr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.add-psr select {
+  flex: 2 1 12rem;
+  min-width: 0;
+}
+
+.add-psr select + select {
+  flex: 1 1 8rem;
+}
+
+.dice-roll-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
 }
 
 .fall-hit {

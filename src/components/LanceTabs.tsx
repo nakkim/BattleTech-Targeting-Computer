@@ -1,9 +1,8 @@
 import { firingWeapons } from '../rules/ammo'
 import { isMechDestroyed } from '../rules/destruction'
 import { projectHeat } from '../rules/heat'
-import { pendingSteps } from '../rules/heatPhase'
 import { rulesAttacker, useTracking } from '../state/mode'
-import type { UnitState } from '../state/unit'
+import { pendingSteps, type UnitState } from '../state/unit'
 
 interface Props {
   units: UnitState[]
@@ -24,7 +23,7 @@ export const LanceTabs = ({ units, activeId, onSelect, onAdd, onDuplicate, onRem
           const firing = firingWeapons(rulesAttacker(u.attacker, tracking), u.weapons).length
           const destroyed = isMechDestroyed(u.attacker)
           const active = u.id === activeId
-          const rolls = tracking && u.heatPhase ? pendingSteps(u.heatPhase, u.attacker) : 0
+          const rolls = pendingSteps(u, tracking)
           return (
             <div key={u.id} className={`lance-tab ${active ? 'active' : ''} ${destroyed ? 'lance-tab-destroyed' : ''}`}>
               <button type="button" role="tab" aria-selected={active} className="lance-tab-main" onClick={() => onSelect(u.id)}>
@@ -33,7 +32,7 @@ export const LanceTabs = ({ units, activeId, onSelect, onAdd, onDuplicate, onRem
                   {destroyed && <span className="hot">DESTROYED</span>}
                   {!destroyed && u.attacker.shutdown && <span className="hot">SHUT DOWN</span>}
                   {rolls > 0 && (
-                    <span className="hot" title="Heat Phase rolls still to enter, see the Heat card">
+                    <span className="hot" title="Heat Phase or Piloting Skill Rolls still to resolve">
                       ROLL {rolls}
                     </span>
                   )}

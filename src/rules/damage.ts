@@ -67,6 +67,9 @@ export const maxArmorFacings = (tonnage: number): Record<ArmorFacing, number> =>
   return armor
 }
 
+/** Fields damage changes, kept so a hit can be undone. */
+export type DamageFields = Pick<Attacker, 'armorDamage' | 'structureDamage' | 'destroyedLocations' | 'ammoBins'>
+
 type DamageState = Pick<Attacker, 'tonnage' | 'armor' | 'armorDamage' | 'structureDamage' | 'destroyedLocations' | 'leftArm' | 'rightArm'>
 
 export const armorLeft = (attacker: DamageState, facing: ArmorFacing): number => {

@@ -1,20 +1,17 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { explosionDamage, heatExplosionCandidates } from '../rules/ammo'
-import { ammoExplodes, fallDamage, fallHitLocation, fallSide, fallsOnShutdown, fiveGroups, needsShutdownPsr, powerCheck, shutdownAfter, shutdownPsr, type HeatPhase } from '../rules/heatPhase'
+import { ammoExplodes, powerCheck, shutdownAfter, shutsDownStanding, type HeatPhase } from '../rules/heatPhase'
 import { LOCATION_NAMES, WEAPONS_BY_KEY } from '../rules/tables'
-import type { Arc, Attacker } from '../rules/types'
+import type { Attacker } from '../rules/types'
 import type { HeatRoll } from '../state/unit'
 import { HitReport } from './DamagePanel'
+import { RollInput, RollStep } from './Rolls'
 
-/** What the player does in the Heat Phase: enter rolls, and apply or undo damage. */
+/** What the player does in the Heat Phase: enter rolls, and apply or undo an explosion. */
 export interface HeatPhaseActions {
   onRoll: (roll: HeatRoll, value: number | null) => void
   onExplode: (binId: string) => void
   onUndoExplosion: () => void
-  /** Facing After Fall roll ('facing') or the Hit Location roll of a group of falling damage. */
-  onFallRoll: (roll: 'facing' | number, value: number | null) => void
-  onApplyFall: () => void
-  onUndoFall: () => void
 }
 
 interface Props extends HeatPhaseActions {
@@ -24,35 +21,9 @@ interface Props extends HeatPhaseActions {
   tracking: boolean
 }
 
-const ROLL_2D6 = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-const ROLL_1D6 = [1, 2, 3, 4, 5, 6]
-
-interface RollInputProps {
-  label: string
-  value: number | null
-  onChange: (value: number | null) => void
-  /** Possible results, 2D6 by default. */
-  results?: number[]
-}
-
-/** Buttons for entering a physical dice result. Clicking the chosen result again clears it. */
-const RollInput = ({ label, value, onChange, results = ROLL_2D6 }: RollInputProps) => (
-  <div className="segmented roll-input" role="radiogroup" aria-label={label}>
-    {results.map((n) => (
-      <button key={n} type="button" role="radio" aria-checked={n === value} className={n === value ? 'active' : ''} onClick={() => onChange(n === value ? null : n)}>
-        {n}
-      </button>
-    ))}
-  </div>
-)
-
-/** One roll: what to roll, the result, and what follows. */
-const RollStep = ({ title, children }: { title: string; children: ReactNode }) => (
-  <div className="heat-roll">
-    <h4>{title}</h4>
-    {children}
-  </div>
-)
+/** Shutting down while standing calls for a Piloting Skill Roll, made on its own card. */
+const ShutdownPsrNote = ({ phase }: { phase: HeatPhase }) =>
+  shutsDownStanding(phase) ? <p className="muted">The ’Mech shut down standing: make the Piloting Skill Roll on the Piloting Skill Rolls card.</p> : null
 
 const PowerStep = ({ phase, onRoll }: Pick<Props, 'phase' | 'onRoll'>) => {
   const check = powerCheck(phase)
@@ -64,6 +35,7 @@ const PowerStep = ({ phase, onRoll }: Pick<Props, 'phase' | 'onRoll'>) => {
       return (
         <RollStep title="Shutdown">
           <p className="msg-error">Heat {phase.heat}: the power plant shuts down automatically. No roll can avoid it.</p>
+          <ShutdownPsrNote phase={phase} />
         </RollStep>
       )
     case 'auto-restart':
@@ -97,100 +69,11 @@ const PowerStep = ({ phase, onRoll }: Pick<Props, 'phase' | 'onRoll'>) => {
                 : 'The power plant shuts down. The ’Mech is immobile and cannot move or attack; its heat sinks keep working. It can try to restart after one full turn.'}
             </p>
           )}
+          <ShutdownPsrNote phase={phase} />
         </RollStep>
       )
     }
   }
-}
-
-const SIDE_TEXT: Record<Arc, string> = {
-  front: 'its front: use the Front column',
-  right: 'its right side: use the Right Side column',
-  left: 'its left side: use the Left Side column',
-  rear: 'its back: use the Front column, on the rear armor',
-}
-
-/** Falling damage: the side the 'Mech lands on, then a hit location for each 5-point group. */
-const FallDamage = ({ phase, attacker, onFallRoll, onApplyFall, onUndoFall }: Pick<Props, 'phase' | 'attacker' | 'onFallRoll' | 'onApplyFall' | 'onUndoFall'>) => {
-  const fall = phase.fall
-  if (fall) {
-    const damage = fall.hits.reduce((sum, h) => sum + h.damage, 0)
-    return (
-      <HitReport
-        label={`Falling damage ${damage}, landed on ${fall.side === 'rear' ? 'its back' : fall.side === 'front' ? 'its front' : `its ${fall.side} side`}`}
-        groups={fall.hits.map((h) => ({ ...h, label: fall.hits.length > 1 ? `${h.damage} to the ${LOCATION_NAMES[h.location].toLowerCase()}` : undefined }))}
-        explosion={false}
-        attacker={attacker}
-        onUndo={onUndoFall}
-      />
-    )
-  }
-  const damage = fallDamage(attacker)
-  const groups = fiveGroups(damage)
-  const side = phase.fallFacingRoll === null ? null : fallSide(phase.fallFacingRoll)
-  const ready = side !== null && groups.every((_, i) => phase.fallRolls[i] != null)
-  return (
-    <>
-      <p>
-        Falling damage <strong>{damage}</strong>
-        {attacker.waterDepth > 0 && ' (halved in water)'}: {groups.length === 1 ? 'one hit' : `${groups.length} hits of ${groups.join(', ')}`}.
-      </p>
-      <p>Roll 1D6 on the Facing After Fall Table for the side it lands on.</p>
-      <RollInput label="Facing After Fall roll" results={ROLL_1D6} value={phase.fallFacingRoll} onChange={(v) => onFallRoll('facing', v)} />
-      {side && (
-        <>
-          <p className="muted">Lands on {SIDE_TEXT[side]} of the Hit Location Table.</p>
-          {groups.map((g, i) => {
-            const roll = phase.fallRolls[i] ?? null
-            return (
-              <div key={i} className="fall-hit">
-                <p>
-                  {groups.length > 1 ? `Hit ${i + 1}, ${g} damage` : `${g} damage`}: roll 2D6 for the location
-                  {roll !== null && (
-                    <>
-                      {' '}
-                      — <strong>{LOCATION_NAMES[fallHitLocation(side, roll)]}</strong>
-                    </>
-                  )}
-                </p>
-                <RollInput label={`Hit location roll ${i + 1}`} value={roll} onChange={(v) => onFallRoll(i, v)} />
-              </div>
-            )
-          })}
-          <div>
-            <button type="button" className="danger" disabled={!ready} onClick={onApplyFall} title="Armor first, then internal structure; each hit is applied on its own">
-              Apply falling damage
-            </button>
-          </div>
-        </>
-      )}
-    </>
-  )
-}
-
-const FallStep = ({ phase, attacker, onRoll, ...fallProps }: Pick<Props, 'phase' | 'attacker' | 'onRoll' | 'onFallRoll' | 'onApplyFall' | 'onUndoFall'>) => {
-  if (!needsShutdownPsr(phase)) return null
-  const { modifiers, target } = shutdownPsr(attacker)
-  const falls = fallsOnShutdown(phase, attacker)
-  return (
-    <RollStep title="Piloting Skill Roll">
-      <p>
-        The ’Mech shuts down standing. {target > 12 ? 'Target Number' : 'Roll 2D6:'} <strong>{target}+</strong> {target > 12 ? 'is above 12, so it falls.' : 'to stay standing.'}
-      </p>
-      <p className="muted">{modifiers.map((m, i) => `${m.label} ${i > 0 ? '+' : ''}${m.value}`).join(' · ')}</p>
-      {target <= 12 && <RollInput label="Piloting Skill Roll" value={phase.psrRoll} onChange={(v) => onRoll('psrRoll', v)} />}
-      {falls === false && <p className="msg-ok">The ’Mech stays standing.</p>}
-      {falls === true && (
-        <>
-          <ul className="messages">
-            <li className="msg-error">The ’Mech falls and is now prone, face down.</li>
-            <li className="msg-warn">The MechWarrior takes 1 damage: the ’Mech is immobile, so there is no roll to avoid it.</li>
-          </ul>
-          <FallDamage phase={phase} attacker={attacker} {...fallProps} />
-        </>
-      )}
-    </RollStep>
-  )
 }
 
 const AmmoStep = ({ phase, attacker, onRoll, onExplode, onUndoExplosion }: Props) => {
@@ -267,7 +150,6 @@ export const HeatPhaseRolls = (props: Props) => {
     <section className="heat-phase" aria-label="Heat Phase rolls">
       <h3>Heat Phase rolls · heat {phase.heat}</h3>
       <PowerStep {...props} />
-      <FallStep {...props} />
       <AmmoStep {...props} />
     </section>
   )

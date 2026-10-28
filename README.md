@@ -25,10 +25,16 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
 - **Next turn** advances the turn counter. For every 'Mech it clears movement, carries the projected heat into the next turn and removes the ammo fired. In Track stats mode it stays disabled ("Resolve heat phase") until every Heat Phase roll is entered and its damage applied.
 - **Heat Phase rolls** (Track stats mode): all dice are rolled on the table. After **Next turn**, the Heat card lists the rolls the Heat Phase needs, and you click each 2D6 result:
   - **Shutdown** at 14 heat or more, automatic at 30. A shut down 'Mech cannot move or attack, and tries to restart in the following Heat Phases (automatically below 14 heat).
-  - **Piloting Skill Roll** at +3 plus leg damage when a standing 'Mech shuts down. On a fall the 'Mech goes prone, and you click the 1D6 Facing After Fall roll and a 2D6 hit location roll for each 5-point group of falling damage. **Apply falling damage** applies each group, with Undo.
+  - A standing 'Mech that shuts down gets a Piloting Skill Roll at +3 on the Piloting Skill Rolls card.
   - **Ammo explosion** at 19 heat or more. On a failure it explodes the bin with the most damage per shot, or the one you pick between equal ones, with Undo.
   - Lance tabs show **ROLL n** while results are missing, and **SHUT DOWN** for a shut down 'Mech. The 'Mech card also has a **Shut down** switch for corrections and voluntary shutdown.
   - In Plain 2D6 mode the Heat card only lists the rolls the Heat Phase calls for; you resolve them on the record sheet.
+- **Piloting Skill Rolls** (Track stats mode): a card lists the turn's Piloting Skill Rolls, made with physical dice.
+  - **Add roll** picks the event (kicked, charged, missed kick or death from above, 20+ damage, actuator or leg loss, standing up, water, rubble and more) and its phase.
+  - Each roll shows its Target Number: Piloting skill, every event of the same phase (all of an attack phase, since those rolls come at its end), and leg damage from Critical damage. Entering a result fixes its modifiers.
+  - A prone 'Mech only rolls to stand, a shut down 'Mech fails every roll, and a Target Number above 12, a missed death from above (a 2-level fall on the rear) or a lost leg fall automatically.
+  - After a fall: the MechWarrior's roll to avoid 1 damage, then the 1D6 Facing After Fall roll and a 2D6 hit location roll for each 5-point group. **Apply falling damage** applies each group, with Undo. Correcting or removing the roll takes the fall back.
+  - **Next turn** clears the rolls, and stays disabled until they are resolved.
 - **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Plain 2D6 only works out hit or miss: ammo never runs out, and the armor, ammunition and ammo explosion parts are hidden. Tracked values are kept for switching back.
 - **Theme**: a header switch picks light or dark. The first visit follows the system setting.
 - Cards can be hidden, and the app saves its state in localStorage.

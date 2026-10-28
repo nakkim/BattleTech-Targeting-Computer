@@ -6,13 +6,25 @@ import { drawAmmo, firingWeapons } from '../rules/ammo'
 import { declaredWeapons } from '../rules/destruction'
 import { checkTargets, resolveWeaponAttack, type WeaponAttackResult } from '../rules/weaponAttack'
 import { rulesAttacker, useTracking } from '../state/mode'
-import { applyFallDamage, enterFallRoll, enterHeatRoll, explodeHeatAmmo, undoFallDamage, undoHeatExplosion, type UnitState } from '../state/unit'
+import {
+  addPsr,
+  applyFallDamage,
+  enterFallRoll,
+  enterHeatRoll,
+  enterPsrRoll,
+  explodeHeatAmmo,
+  removePsr,
+  undoFallDamage,
+  undoHeatExplosion,
+  type UnitState,
+} from '../state/unit'
 import { AttackerPanel, MechDataPanel } from './AttackerPanel'
 import { DamagePanel } from './DamagePanel'
 import { HeatPanel } from './HeatPanel'
 import { HitLocationPanel } from './HitLocationPanel'
 import { MechDialog } from './MechDialog'
 import { PhysicalPanel } from './PhysicalPanel'
+import { PsrPanel } from './PsrPanel'
 import { TargetDataPanel, TargetsPanel } from './TargetsPanel'
 import { WeaponsPanel } from './WeaponsPanel'
 
@@ -118,6 +130,20 @@ export const UnitView = ({ unit, onChange }: Props) => {
           onTargetChange={(id) => set({ physicalTargetId: id })}
           onHatchetTableChange={(t) => set({ hatchetTable: t })}
         />
+        {tracking && (
+          <PsrPanel
+            psrs={unit.psrs}
+            attacker={unit.attacker}
+            actions={{
+              onAdd: (cause, phase) => onChange((u) => addPsr(u, cause, phase)),
+              onRemove: (id) => onChange((u) => removePsr(u, id)),
+              onRoll: (id, roll, value) => onChange((u) => enterPsrRoll(u, id, roll, value)),
+              onFallRoll: (id, roll, value) => onChange((u) => enterFallRoll(u, id, roll, value)),
+              onApplyFall: (id) => onChange((u) => applyFallDamage(u, id)),
+              onUndoFall: (id) => onChange((u) => undoFallDamage(u, id)),
+            }}
+          />
+        )}
         <div className="grid-results">
           <HitLocationPanel target={selectedTarget} />
           <HeatPanel
@@ -128,9 +154,6 @@ export const UnitView = ({ unit, onChange }: Props) => {
               onRoll: (roll, value) => onChange((u) => enterHeatRoll(u, roll, value)),
               onExplode: (binId) => onChange((u) => explodeHeatAmmo(u, binId)),
               onUndoExplosion: () => onChange(undoHeatExplosion),
-              onFallRoll: (roll, value) => onChange((u) => enterFallRoll(u, roll, value)),
-              onApplyFall: () => onChange(applyFallDamage),
-              onUndoFall: () => onChange(undoFallDamage),
             }}
           />
         </div>
