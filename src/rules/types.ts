@@ -78,6 +78,8 @@ export interface Attacker {
   heatSinkHits: number
   submergedHeatSinks: number
   engineHits: number
+  /** Gyro critical hits: 1 damages it, 2 destroy it (p. 32). */
+  gyroHits: number
   hasClub: boolean
   /** Locations destroyed or blown off. Head or center torso destroys the 'Mech. */
   destroyedLocations: Location[]

@@ -10,6 +10,8 @@ export type PsrCause =
   | 'legActuator'
   | 'hip'
   | 'legDestroyed'
+  | 'gyroHit'
+  | 'gyroDestroyed'
   | 'kicked'
   | 'pushed'
   | 'charged'
@@ -50,7 +52,7 @@ export interface PsrCauseSpec {
   note?: string
 }
 
-const DAMAGE_NOTE = 'Tick the damage under Critical damage: it counts there, once for every roll.'
+const DAMAGE_NOTE = 'Its modifier comes from Critical damage, once for every roll.'
 
 export const PSR_CAUSES: Record<PsrCause, PsrCauseSpec> = {
   shutdown: { label: 'Reactor shut down', modifier: 3, phase: 'heat' },
@@ -58,6 +60,8 @@ export const PSR_CAUSES: Record<PsrCause, PsrCauseSpec> = {
   legActuator: { label: 'Leg or foot actuator destroyed', modifier: 0, phase: 'weapon', note: DAMAGE_NOTE },
   hip: { label: 'Hip actuator destroyed', modifier: 0, phase: 'weapon', note: DAMAGE_NOTE },
   legDestroyed: { label: 'Leg destroyed', modifier: 0, phase: 'weapon', automatic: 'A ’Mech that loses a leg falls automatically.' },
+  gyroHit: { label: 'Gyro hit', modifier: 0, phase: 'weapon', note: DAMAGE_NOTE },
+  gyroDestroyed: { label: 'Gyro destroyed', modifier: 0, phase: 'weapon', automatic: 'A ’Mech whose gyro is destroyed falls automatically.' },
   kicked: { label: 'Was kicked', modifier: 0, phase: 'physical' },
   pushed: { label: 'Was pushed', modifier: 0, phase: 'physical' },
   charged: { label: 'Was charged or hit by death from above', modifier: 2, phase: 'physical' },
@@ -77,8 +81,8 @@ export const PSR_CAUSES: Record<PsrCause, PsrCauseSpec> = {
   water1: { label: 'Entered Depth 1 water', modifier: -1, phase: 'movement' },
   water2: { label: 'Entered Depth 2 water', modifier: 0, phase: 'movement' },
   water3: { label: 'Entered Depth 3+ water', modifier: 1, phase: 'movement' },
-  jumpedDamaged: { label: 'Jumped with a damaged leg or destroyed leg', modifier: 0, phase: 'movement' },
-  ranDamaged: { label: 'Ran with a damaged hip', modifier: 0, phase: 'movement' },
+  jumpedDamaged: { label: 'Jumped with damaged leg actuators or gyro, or a lost leg', modifier: 0, phase: 'movement' },
+  ranDamaged: { label: 'Ran with a damaged hip or gyro', modifier: 0, phase: 'movement' },
 }
 
 export interface PsrModifier {
@@ -94,7 +98,7 @@ const LEGS: [Location, 'leftLeg' | 'rightLeg', string][] = [
 /**
  * Damage modifiers to a Piloting Skill Roll (p. 41): +5 for a destroyed leg, else +2
  * for a destroyed hip (ignoring the leg's other actuators), else +1 per leg or foot
- * actuator. Gyro hits are not tracked.
+ * actuator; +3 for a damaged gyro and +3 more once destroyed (p. 32).
  */
 export const psrDamageModifiers = (attacker: Attacker): PsrModifier[] => {
   const modifiers: PsrModifier[] = []
@@ -107,6 +111,8 @@ export const psrDamageModifiers = (attacker: Attacker): PsrModifier[] => {
       if (actuators > 0) modifiers.push({ label: `${side} leg actuators damaged (${actuators})`, value: actuators })
     }
   }
+  if (attacker.gyroHits >= 1) modifiers.push({ label: 'Gyro damaged', value: 3 })
+  if (attacker.gyroHits >= 2) modifiers.push({ label: 'Gyro destroyed', value: 3 })
   return modifiers
 }
 
@@ -194,6 +200,8 @@ export interface Psr {
   /** 2D6 to avoid MechWarrior damage after a fall (p. 43), null until rolled. */
   pilotRoll: number | null
   fall: FallRolls
+  /** Set when the app added the roll for tracked damage, e.g. "hip:LL"; it goes away with that damage. */
+  source?: string
 }
 
 /** The Piloting Skill Rolls of the turn, in the order they came up. */
@@ -244,6 +252,8 @@ export const psrModifiers = (queue: PsrQueue, psr: Psr, attacker: Attacker): Psr
  */
 export const checkPsrs = (queue: PsrQueue, attacker: Attacker): PsrCheck[] => {
   let prone = queue.wasProne
+  // An automatic fall in an attack phase makes its other rolls, made at the end of the phase, unnecessary.
+  const fallingPhases = new Set(queue.rolls.filter((p) => PSR_CAUSES[p.cause].automatic && (p.phase === 'weapon' || p.phase === 'physical')).map((p) => p.phase))
   return queue.rolls.map((psr) => {
     const spec = PSR_CAUSES[psr.cause]
     const modifiers = psrModifiers(queue, psr, attacker)
@@ -253,6 +263,8 @@ export const checkPsrs = (queue: PsrQueue, attacker: Attacker): PsrCheck[] => {
     const immobile = attacker.shutdown
     const check: PsrCheck = { psr, modifiers, target, automatic: null, outcome: 'pending', skipped: null, pilotTarget, pilotAutomatic: null, pilotHurt: null }
     if (prone && psr.cause !== 'stand') return { ...check, outcome: 'skipped', skipped: 'The ’Mech is prone: it only rolls to stand.' }
+    if (fallingPhases.has(psr.phase) && !spec.automatic) return { ...check, outcome: 'skipped', skipped: 'The ’Mech falls automatically in this phase anyway.' }
+    if (psr.cause === 'stand' && attacker.gyroHits >= 2) return { ...check, outcome: 'skipped', skipped: 'With its gyro destroyed, the ’Mech cannot stand up.' }
     if (spec.automatic) check.automatic = spec.automatic
     else if (immobile && psr.cause !== 'shutdown') check.automatic = 'A shut down ’Mech fails every Piloting Skill Roll.'
     else if (target > 12) check.automatic = `Target Number ${target} is above 12.`

@@ -14,6 +14,7 @@ import {
   enterPsrRoll,
   explodeHeatAmmo,
   removePsr,
+  trackDamage,
   undoFallDamage,
   undoHeatExplosion,
   type UnitState,
@@ -25,6 +26,7 @@ import { HitLocationPanel } from './HitLocationPanel'
 import { MechDialog } from './MechDialog'
 import { PhysicalPanel } from './PhysicalPanel'
 import { PsrPanel } from './PsrPanel'
+import { PSR_PHASE_NAMES, type PsrPhase } from '../rules/psr'
 import { TargetDataPanel, TargetsPanel } from './TargetsPanel'
 import { WeaponsPanel } from './WeaponsPanel'
 
@@ -35,8 +37,10 @@ interface Props {
 
 export const UnitView = ({ unit, onChange }: Props) => {
   const set = (patch: Partial<UnitState>) => onChange((u) => ({ ...u, ...patch }))
-  const { targets, weapons, spotter } = unit
   const tracking = useTracking()
+  // Damage and critical hits add or remove the Piloting Skill Rolls they call for (tracked play only).
+  const damage = (update: (unit: UnitState) => UnitState, phase?: PsrPhase) => onChange((u) => (tracking ? trackDamage(u, update(u), phase) : update(u)))
+  const { targets, weapons, spotter } = unit
   // Rules see no ammo bins in plain mode; edits still go to the stored attacker.
   const attacker = rulesAttacker(unit.attacker, tracking)
   const [editing, setEditing] = useState(false)
@@ -93,8 +97,8 @@ export const UnitView = ({ unit, onChange }: Props) => {
             onClose={() => setEditing(false)}
           />
         )}
-        <AttackerPanel attacker={unit.attacker} onChange={(a) => set({ attacker: a })} />
-        {tracking && <DamagePanel attacker={unit.attacker} onChange={(a) => set({ attacker: a })} />}
+        <AttackerPanel attacker={unit.attacker} onChange={(a) => damage((u) => ({ ...u, attacker: a }))} />
+        {tracking && <DamagePanel attacker={unit.attacker} damagePhase={PSR_PHASE_NAMES[unit.attackPhase]} onChange={(a) => damage((u) => ({ ...u, attacker: a }))} />}
         <TargetsPanel
           targets={targets}
           selectedId={selectedTarget.id}
@@ -133,9 +137,11 @@ export const UnitView = ({ unit, onChange }: Props) => {
         {tracking && (
           <PsrPanel
             psrs={unit.psrs}
+            attackPhase={unit.attackPhase}
             attacker={unit.attacker}
             actions={{
               onAdd: (cause, phase) => onChange((u) => addPsr(u, cause, phase)),
+              onAttackPhase: (attackPhase) => set({ attackPhase }),
               onRemove: (id) => onChange((u) => removePsr(u, id)),
               onRoll: (id, roll, value) => onChange((u) => enterPsrRoll(u, id, roll, value)),
               onFallRoll: (id, roll, value) => onChange((u) => enterFallRoll(u, id, roll, value)),
@@ -152,8 +158,8 @@ export const UnitView = ({ unit, onChange }: Props) => {
             phase={unit.heatPhase}
             phaseActions={{
               onRoll: (roll, value) => onChange((u) => enterHeatRoll(u, roll, value)),
-              onExplode: (binId) => onChange((u) => explodeHeatAmmo(u, binId)),
-              onUndoExplosion: () => onChange(undoHeatExplosion),
+              onExplode: (binId) => damage((u) => explodeHeatAmmo(u, binId), 'heat'),
+              onUndoExplosion: () => damage(undoHeatExplosion, 'heat'),
             }}
           />
         </div>

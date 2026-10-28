@@ -8,6 +8,8 @@ import { CollapsiblePanel, NumberField, Toggle } from './fields'
 
 interface Props {
   attacker: Attacker
+  /** Phase new damage counts toward for Piloting Skill Rolls, e.g. "Weapon Attack Phase". */
+  damagePhase: string
   onChange: (attacker: Attacker) => void
 }
 
@@ -98,7 +100,7 @@ export const HitReport = ({ label, groups, explosion, attacker, onUndo }: HitRep
 }
 
 /** Armor and internal structure of the 'Mech, with damage applied hit by hit. */
-export const DamagePanel = ({ attacker, onChange }: Props) => {
+export const DamagePanel = ({ attacker, damagePhase, onChange }: Props) => {
   const locations = LOCATIONS.filter((l) => hasLocation(attacker, l))
   const [location, setLocation] = useState<Location>('CT')
   const [amount, setAmount] = useState(5)
@@ -220,6 +222,7 @@ export const DamagePanel = ({ attacker, onChange }: Props) => {
             </button>
           </div>
         )}
+        <p className="muted small-text">Damage counts toward the {damagePhase} for Piloting Skill Rolls.</p>
       </fieldset>
       {lastHit && <HitReport label={lastHit.label} groups={[lastHit.result]} explosion={lastHit.explosion} attacker={lastHit.result.attacker} onUndo={undo} />}
     </CollapsiblePanel>

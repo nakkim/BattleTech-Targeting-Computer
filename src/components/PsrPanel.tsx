@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { checkPsrs, PSR_CAUSES, PSR_PHASE_NAMES, type PsrCause, type PsrCheck, type PsrModifier, type PsrPhase, type PsrQueue } from '../rules/psr'
 import type { Attacker } from '../rules/types'
-import { Panel } from './fields'
+import { Panel, Segmented } from './fields'
 import { FallDamage, RollInput, RollStep } from './Rolls'
 
 /** What the player does with Piloting Skill Rolls: add one, enter dice results, and apply or undo falling damage. */
 export interface PsrActions {
   onAdd: (cause: PsrCause, phase: PsrPhase) => void
+  /** Phase that new damage and critical hits happen in. */
+  onAttackPhase: (phase: PsrPhase) => void
   onRemove: (id: string) => void
   onRoll: (id: string, roll: 'roll' | 'pilotRoll', value: number | null) => void
   onFallRoll: (id: string, roll: 'facing' | number, value: number | null) => void
@@ -17,14 +19,17 @@ export interface PsrActions {
 interface Props {
   psrs: PsrQueue
   attacker: Attacker
+  attackPhase: PsrPhase
   actions: PsrActions
 }
 
-/** Causes the player adds by hand; the shutdown roll comes from the Heat Phase. */
-const ADDABLE = (Object.keys(PSR_CAUSES) as PsrCause[]).filter((c) => c !== 'shutdown')
+/** Rolls the app adds itself: from the Heat Phase, and from damage and critical hits it tracks. */
+const AUTOMATIC: PsrCause[] = ['shutdown', 'damage20', 'legActuator', 'hip', 'legDestroyed', 'gyroHit', 'gyroDestroyed']
+/** Causes the player adds by hand. */
+const ADDABLE = (Object.keys(PSR_CAUSES) as PsrCause[]).filter((c) => !AUTOMATIC.includes(c))
 const PHASES = Object.keys(PSR_PHASE_NAMES) as PsrPhase[]
 /** Short phase names for the narrow select. */
-const PHASE_OPTIONS: Record<PsrPhase, string> = { movement: 'Movement', weapon: 'Weapon attacks', physical: 'Physical attacks', heat: 'Heat' }
+const PHASE_OPTIONS: Record<PsrPhase, string> = { movement: 'Movement', weapon: 'Weapon', physical: 'Physical', heat: 'Heat' }
 
 /** E.g. "Piloting skill 5 · Reactor shut down +3 · Entered Depth 1 water −1". */
 const formatModifiers = (modifiers: PsrModifier[]): string =>
@@ -74,6 +79,7 @@ const PsrRoll = ({ check, attacker, actions }: { check: PsrCheck; attacker: Atta
       actions={
         <span className="dice-roll-meta">
           <span className="muted">{PSR_PHASE_NAMES[psr.phase]}</span>
+          {psr.source && <span className="muted">· from damage</span>}
           {psr.cause !== 'shutdown' && (
             <button type="button" className="small ghost" onClick={() => actions.onRemove(psr.id)} title="Remove this roll and take back its falling damage">
               Remove
@@ -127,13 +133,23 @@ const PsrRoll = ({ check, attacker, actions }: { check: PsrCheck; attacker: Atta
 }
 
 /** Piloting Skill Rolls of the turn, made with physical dice: what to roll, the result, and the fall that follows. */
-export const PsrPanel = ({ psrs, attacker, actions }: Props) => {
+export const PsrPanel = ({ psrs, attacker, attackPhase, actions }: Props) => {
   const checks = checkPsrs(psrs, attacker)
   return (
     <Panel title="Piloting Skill Rolls" className="psr-panel">
+      <Segmented
+        label="Damage and critical hits happen in the"
+        value={attackPhase}
+        options={[
+          { value: 'weapon', label: 'Weapon Attack Phase' },
+          { value: 'physical', label: 'Physical Attack Phase' },
+        ]}
+        onChange={actions.onAttackPhase}
+        title="Rolls for 20+ damage, actuator, hip and gyro hits and lost legs are added in this phase"
+      />
       <AddPsr onAdd={actions.onAdd} />
       {checks.length === 0 ? (
-        <p className="muted">No Piloting Skill Rolls this turn. Add one when an event calls for it.</p>
+        <p className="muted">No Piloting Skill Rolls this turn. Damage and critical hits add theirs; add others when an event calls for one.</p>
       ) : (
         <div className="psr-list">
           {checks.map((c) => (

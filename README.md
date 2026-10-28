@@ -18,7 +18,7 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - Apply a hit to a location: armor takes it first, then internal structure. A location with no internal structure left is destroyed, and the rest of the damage transfers inward. Rear hits stay on rear armor.
   - Ammo explosions damage internal structure directly, skipping armor.
   - A report lists what each location took, when to roll for critical hits, and MechWarrior damage. **Undo** reverts the last hit and **Repair** clears all damage.
-- **Critical damage**: mark destroyed locations, damaged actuators, destroyed heat sinks and engine hits. A side torso takes its arm with it, and a destroyed head or center torso destroys the 'Mech.
+- **Critical damage**: mark destroyed locations, damaged actuators, destroyed heat sinks, engine hits and gyro hits. A side torso takes its arm with it, and a destroyed head or center torso destroys the 'Mech.
 - **Physical attacks**: punch, kick, club, hatchet, push, charge and DFA. Shows Target Numbers, damage groups, hit tables, level differences and actuator damage.
 - **Hit location**: chance of each location by attack direction (standard, punch and kick tables), plus the Cluster Hits Table.
 - **Heat**: projects heat after the Heat Phase and shows the heat effects. At 19 heat or more it shows the roll to avoid an ammo explosion and which bin would explode.
@@ -30,9 +30,10 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - Lance tabs show **ROLL n** while results are missing, and **SHUT DOWN** for a shut down 'Mech. The 'Mech card also has a **Shut down** switch for corrections and voluntary shutdown.
   - In Plain 2D6 mode the Heat card only lists the rolls the Heat Phase calls for; you resolve them on the record sheet.
 - **Piloting Skill Rolls** (Track stats mode): a card lists the turn's Piloting Skill Rolls, made with physical dice.
-  - **Add roll** picks the event (kicked, charged, missed kick or death from above, 20+ damage, actuator or leg loss, standing up, water, rubble and more) and its phase.
+  - **Added automatically** from tracked damage: 20+ damage in a phase, each damaged leg or foot actuator and hip, a lost leg, and gyro hits. A switch on the card sets whether new damage happens in the Weapon or Physical Attack Phase; heat explosions count toward the Heat Phase. Undoing or repairing the damage, or unticking the hit, removes the roll.
+  - **Add roll** adds the other events (kicked, pushed, charged, missed kick or death from above, standing up, water, rubble and more) with their phase.
   - Each roll shows its Target Number: Piloting skill, every event of the same phase (all of an attack phase, since those rolls come at its end), and leg damage from Critical damage. Entering a result fixes its modifiers.
-  - A prone 'Mech only rolls to stand, a shut down 'Mech fails every roll, and a Target Number above 12, a missed death from above (a 2-level fall on the rear) or a lost leg fall automatically.
+  - A prone 'Mech only rolls to stand, a shut down 'Mech fails every roll, and a Target Number above 12, a missed death from above (a 2-level fall on the rear), a lost leg or a destroyed gyro fall automatically; the other rolls of that attack phase are then not needed. A 'Mech with a destroyed gyro cannot stand.
   - After a fall: the MechWarrior's roll to avoid 1 damage, then the 1D6 Facing After Fall roll and a 2D6 hit location roll for each 5-point group. **Apply falling damage** applies each group, with Undo. Correcting or removing the roll takes the fall back.
   - **Next turn** clears the rolls, and stays disabled until they are resolved.
 - **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Plain 2D6 only works out hit or miss: ammo never runs out, and the armor, ammunition and ammo explosion parts are hidden. Tracked values are kept for switching back.

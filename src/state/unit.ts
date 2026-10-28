@@ -18,7 +18,8 @@ import {
   type PsrQueue,
 } from '../rules/psr'
 import { ammoExplosionAvoid, LOCATION_NAMES, WEAPONS_BY_KEY, type HitTable } from '../rules/tables'
-import type { Attacker, MountedWeapon, Spotter, Target } from '../rules/types'
+import { isMechDestroyed } from '../rules/destruction'
+import type { Attacker, Location, MountedWeapon, Spotter, Target } from '../rules/types'
 import { createAttacker, createTarget, defaultSpotter, newId } from './defaults'
 import { buildMech, defaultMech } from './mechCatalog'
 import { rulesAttacker } from './mode'
@@ -39,6 +40,10 @@ export interface UnitState {
   heatPhase: HeatPhase | null
   /** Piloting Skill Rolls of this turn, made with physical dice. */
   psrs: PsrQueue
+  /** Phase that new damage and critical hits happen in, for the rolls they call for. */
+  attackPhase: PsrPhase
+  /** Damage taken this turn per phase, for the roll after 20 or more. */
+  damageTaken: Partial<Record<PsrPhase, number>>
 }
 
 export const noPsrs = (): PsrQueue => ({ wasProne: false, rolls: [] })
@@ -65,6 +70,8 @@ export const newUnit = ({ attacker, weapons }: { attacker: Attacker; weapons: Mo
     hatchetTable: 'standard',
     heatPhase: null,
     psrs: noPsrs(),
+    attackPhase: 'weapon',
+    damageTaken: {},
   }
 }
 
@@ -78,6 +85,8 @@ export const normalizeLance = (lance: LanceState): LanceState => {
       attacker: createAttacker(u.attacker),
       heatPhase: u.heatPhase ?? null,
       psrs: u.psrs ?? noPsrs(),
+      attackPhase: u.attackPhase ?? 'weapon',
+      damageTaken: u.damageTaken ?? {},
     })),
   }
 }
@@ -117,10 +126,11 @@ const heatPhaseFor = (attacker: Attacker, weapons: MountedWeapon[], tracking: bo
   }
 }
 
-const newPsr = (cause: PsrCause, phase: PsrPhase = PSR_CAUSES[cause].phase): Psr => ({
+const newPsr = (cause: PsrCause, phase: PsrPhase = PSR_CAUSES[cause].phase, source?: string): Psr => ({
   id: newId('p'),
   cause,
   phase,
+  source,
   roll: null,
   frozen: null,
   pilotRoll: null,
@@ -188,6 +198,8 @@ export const advanceTurn = (unit: UnitState, tracking = true): UnitState => {
     attackerIsSpotting: false,
     heatPhase,
     psrs: noPsrs(),
+    attackPhase: 'weapon',
+    damageTaken: {},
   }
   return tracking ? syncShutdownPsr(next) : next
 }
@@ -259,6 +271,65 @@ export const undoFallDamage = (unit: UnitState, id: string): UnitState => {
   const psr = unit.psrs.rolls.find((p) => p.id === id)
   if (!psr?.fall.applied) return unit
   return updatePsr({ ...unit, attacker: { ...unit.attacker, ...psr.fall.applied.before } }, id, (p) => ({ ...p, fall: { ...p.fall, applied: null } }))
+}
+
+const LEG_ROLLS: [Location, 'leftLeg' | 'rightLeg'][] = [
+  ['LL', 'leftLeg'],
+  ['RL', 'rightLeg'],
+]
+
+/** Armor and internal structure lost, in total. */
+const damageTotal = (attacker: Attacker): number => {
+  const sum = (record: Partial<Record<string, number>>) => Object.values(record).reduce<number>((total, n) => total + (n ?? 0), 0)
+  return sum(attacker.armorDamage) + sum(attacker.structureDamage)
+}
+
+/**
+ * Tracked damage that calls for a Piloting Skill Roll, by source key: each damaged
+ * leg actuator and hip, each lost leg, the gyro, and 20+ damage in a phase (p. 41).
+ */
+const damageEvents = (attacker: Attacker, damageTaken: UnitState['damageTaken']): Map<string, PsrCause> => {
+  const events = new Map<string, PsrCause>()
+  if (isMechDestroyed(attacker)) return events
+  for (const [location, key] of LEG_ROLLS) {
+    const leg = attacker[key]
+    if (leg.hipHit) events.set(`hip:${location}`, 'hip')
+    if (leg.upperLegHit) events.set(`upperLeg:${location}`, 'legActuator')
+    if (leg.lowerLegHit) events.set(`lowerLeg:${location}`, 'legActuator')
+    if (leg.footHit) events.set(`foot:${location}`, 'legActuator')
+    if (attacker.destroyedLocations.includes(location)) events.set(`leg:${location}`, 'legDestroyed')
+  }
+  if (attacker.gyroHits >= 1) events.set('gyro:1', 'gyroHit')
+  if (attacker.gyroHits >= 2) events.set('gyro:2', 'gyroDestroyed')
+  for (const [phase, damage] of Object.entries(damageTaken)) if ((damage ?? 0) >= 20) events.set(`damage20:${phase}`, 'damage20')
+  return events
+}
+
+/**
+ * Add the Piloting Skill Rolls that new damage calls for, and remove those whose damage
+ * was undone or repaired. Damage counts toward the phase given, by default the unit's attack phase.
+ */
+export const trackDamage = (before: UnitState, after: UnitState, phase: PsrPhase = after.attackPhase): UnitState => {
+  let unit = after
+  const total = damageTotal(after.attacker)
+  const dealt = total - damageTotal(before.attacker)
+  if (dealt !== 0) {
+    // Fully repaired: nothing counts any more.
+    const damageTaken = total === 0 ? {} : { ...after.damageTaken, [phase]: Math.max(0, (after.damageTaken[phase] ?? 0) + dealt) }
+    unit = { ...unit, damageTaken }
+  }
+  const was = damageEvents(before.attacker, before.damageTaken)
+  const now = damageEvents(unit.attacker, unit.damageTaken)
+  for (const [source, cause] of now) {
+    if (was.has(source)) continue
+    const rollPhase = cause === 'damage20' ? (source.split(':')[1] as PsrPhase) : phase
+    unit = withPsr(unit, newPsr(cause, rollPhase, source))
+  }
+  for (const source of was.keys()) {
+    const psr = unit.psrs.rolls.find((p) => p.source === source)
+    if (!now.has(source) && psr) unit = removePsr(unit, psr.id)
+  }
+  return unit
 }
 
 /** Heat Phase and Piloting Skill Roll steps still to do. Only tracked play enters rolls. */

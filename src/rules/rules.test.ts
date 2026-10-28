@@ -19,6 +19,7 @@ import {
   newUnit,
   pendingSteps,
   removePsr,
+  trackDamage,
   undoFallDamage,
   undoHeatExplosion,
   unitName,
@@ -584,5 +585,66 @@ describe('Piloting Skill Rolls', () => {
 
   it('clears the rolls on Next turn', () => {
     expect(advanceTurn(addPsr(unitOf(), 'kicked')).psrs.rolls).toEqual([])
+  })
+})
+
+describe('Piloting Skill Rolls from tracked damage', () => {
+  const unitOf = (options: Parameters<typeof createAttacker>[0] = {}) => newUnit({ attacker: createAttacker({ tonnage: 85, piloting: 5, ...options }), weapons: [] })
+  const causes = (unit: UnitState) => unit.psrs.rolls.map((p) => `${p.cause}@${p.phase}`)
+  const hit = (unit: UnitState, location: Location, amount: number) => trackDamage(unit, { ...unit, attacker: applyDamage(unit.attacker, location, amount).attacker })
+
+  it('adds a roll once a phase deals 20 or more damage, and removes it when undone', () => {
+    let unit = hit(unitOf(), 'CT', 12)
+    expect(causes(unit)).toEqual([])
+    const before = unit
+    unit = hit(unit, 'LT', 8)
+    expect(causes(unit)).toEqual(['damage20@weapon'])
+    expect(trackDamage(unit, before).psrs.rolls).toEqual([])
+
+    // The Physical Attack Phase counts on its own.
+    unit = hit({ ...unit, attackPhase: 'physical' }, 'RT', 19)
+    expect(causes(unit)).toEqual(['damage20@weapon'])
+    unit = hit(unit, 'RT', 1)
+    expect(causes(unit)).toEqual(['damage20@weapon', 'damage20@physical'])
+  })
+
+  it('adds a roll per damaged leg actuator and hip, in the attack phase, and removes it when unticked', () => {
+    const unit = { ...unitOf(), attackPhase: 'physical' as const }
+    const ticked = trackDamage(unit, { ...unit, attacker: { ...unit.attacker, leftLeg: { ...unit.attacker.leftLeg, footHit: true }, rightLeg: { ...unit.attacker.rightLeg, hipHit: true } } })
+    expect(causes(ticked)).toEqual(['legActuator@physical', 'hip@physical'])
+    // +1 foot, +2 hip.
+    expect(checkPsrs(ticked.psrs, ticked.attacker).map((c) => c.target)).toEqual([8, 8])
+    const unticked = trackDamage(ticked, { ...ticked, attacker: { ...ticked.attacker, leftLeg: { ...ticked.attacker.leftLeg, footHit: false } } })
+    expect(causes(unticked)).toEqual(['hip@physical'])
+  })
+
+  it('drops a Mech that loses a leg, skipping the other rolls of the phase', () => {
+    let unit = hit(unitOf(), 'CT', 25)
+    unit = trackDamage(unit, { ...unit, attacker: { ...unit.attacker, destroyedLocations: ['LL'] } })
+    const checks = checkPsrs(unit.psrs, unit.attacker)
+    expect(checks.map((c) => [c.psr.cause, c.outcome])).toEqual([
+      ['damage20', 'skipped'],
+      ['legDestroyed', 'falls'],
+    ])
+    expect(unit.attacker.prone).toBe(true)
+  })
+
+  it('takes +3 for a damaged gyro and drops the Mech when it is destroyed, unable to stand', () => {
+    let unit = trackDamage(unitOf(), { ...unitOf(), attacker: { ...unitOf().attacker, gyroHits: 1 } })
+    expect(checkPsrs(unit.psrs, unit.attacker).map((c) => c.target)).toEqual([8])
+    unit = trackDamage(unit, { ...unit, attacker: { ...unit.attacker, gyroHits: 2 } })
+    expect(checkPsrs(unit.psrs, unit.attacker).map((c) => c.outcome)).toEqual(['skipped', 'falls'])
+    // The MechWarrior's roll takes +6 for the destroyed gyro.
+    expect(checkPsrs(unit.psrs, unit.attacker)[1].pilotTarget).toBe(11)
+    unit = addPsr(unit, 'stand')
+    expect(checkPsrs(unit.psrs, unit.attacker)[2].skipped).toMatch(/cannot stand/)
+  })
+
+  it('counts a heat explosion toward the Heat Phase', () => {
+    const unit = newUnit({ attacker: createAttacker({ heat: 19, heatSinks: 0, tonnage: 85, ammoBins: [{ ...newAmmoBin('LRM20', 'LT'), shots: 1 }] }), weapons: [] })
+    // One shot: 20 damage, short of destroying the 'Mech.
+    let next = enterHeatRoll(enterHeatRoll(advanceTurn(unit), 'powerRoll', 6), 'ammoRoll', 2)
+    next = trackDamage(next, explodeHeatAmmo(next, next.attacker.ammoBins[0].id), 'heat')
+    expect(causes(next)).toEqual(['damage20@heat'])
   })
 })

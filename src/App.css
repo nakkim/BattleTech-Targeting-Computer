@@ -1912,9 +1912,10 @@ table.cluster tbody th {
 
 .dice-roll-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px 8px;
 }
 
 .dice-roll p {
@@ -1950,14 +1951,21 @@ table.cluster tbody th {
 }
 
 .add-psr select + select {
-  flex: 1 1 8rem;
+  flex: 1 1 7rem;
 }
 
 .dice-roll-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
   font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.psr-panel > .panel-body > .field,
+.psr-panel .field {
+  margin-bottom: 10px;
 }
 
 .fall-hit {

@@ -52,6 +52,7 @@ export const createAttacker = ({ leftArm, rightArm, ...options }: AttackerOption
   heatSinkHits: 0,
   submergedHeatSinks: 0,
   engineHits: 0,
+  gyroHits: 0,
   hasClub: false,
   destroyedLocations: [],
   ...options,

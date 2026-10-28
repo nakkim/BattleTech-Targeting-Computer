@@ -262,6 +262,17 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
           options={[0, 1, 2].map((n) => ({ value: n, label: String(n) }))}
           onChange={(v) => set({ engineHits: v })}
         />
+        <Segmented
+          label="Gyro hits"
+          value={attacker.gyroHits}
+          options={[
+            { value: 0, label: '0' },
+            { value: 1, label: '1 (damaged)' },
+            { value: 2, label: '2 (destroyed)' },
+          ]}
+          onChange={(v) => set({ gyroHits: v })}
+          title="Damaged: +3 to Piloting Skill Rolls. Destroyed: +3 more, and the ’Mech falls and cannot stand"
+        />
       </details>
     </Panel>
   )
