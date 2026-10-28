@@ -2,7 +2,7 @@ import { checkHits, itemName, itemsIn, slotCount, type CritCheck, type CritHitSt
 import { LOCATION_NAMES, WEAPONS_BY_KEY } from '../rules/tables'
 import type { Attacker, Location, MountedWeapon } from '../rules/types'
 import { HitReport } from './DamagePanel'
-import { CollapsiblePanel } from './fields'
+import { CollapsiblePanel, PendingStatus } from './fields'
 import { RollInput, RollStep } from './Rolls'
 
 /** What the player does with critical hits: enter dice results, pick slots off the record sheet, apply and undo. */
@@ -225,7 +225,7 @@ export const CritPanel = (props: Props) => {
       id="crits"
       title="Critical hits"
       className="crit-panel"
-      summary={pending > 0 ? <span className="hot">{pending} to resolve</span> : checks.length ? `${checks.length} this turn` : 'None this turn'}
+      summary={<PendingStatus pending={pending} total={checks.length} />}
     >
       {checks.length === 0 ? (
         <p className="muted">No critical hit checks this turn. Internal structure damage and hit location rolls of 2 add them.</p>

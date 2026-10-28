@@ -9,7 +9,7 @@ import { newWeapon } from '../state/defaults'
 import { rulesAttacker, useTracking } from '../state/mode'
 import { usePersistentState } from '../state/usePersistentState'
 import { Messages, ModifierList, TargetNumber } from './Breakdown'
-import { Chevron, NumberField, Panel, Segmented, Toggle } from './fields'
+import { Chevron, CollapsiblePanel, NumberField, Segmented, Toggle } from './fields'
 import { WeaponPicker } from './WeaponPicker'
 
 interface Props {
@@ -255,7 +255,12 @@ export const WeaponsPanel = (props: Props) => {
   const anyIndirect = firing.some((w) => w.indirect)
 
   return (
-    <Panel title="Weapon attacks" className="weapons">
+    <CollapsiblePanel
+      id="weapons"
+      title="Weapon attacks"
+      className="weapons"
+      summary={`${firing.length} firing · +${totalHeat} heat · ${totalExpected.toFixed(1)} expected damage`}
+    >
       <WeaponPicker
         locations={LOCATIONS.filter((l) => hasLocation(props.attacker, l))}
         onMount={add}
@@ -323,6 +328,6 @@ export const WeaponsPanel = (props: Props) => {
           </fieldset>
         )}
       </div>
-    </Panel>
+    </CollapsiblePanel>
   )
 }

@@ -3,7 +3,7 @@ import { formatPercent } from '../rules/dice'
 import { ARC_NAMES, CLUSTER_HITS_TABLE, CLUSTER_SIZES, hitLocationChances, LOCATION_NAMES, type HitTable } from '../rules/tables'
 import type { Target } from '../rules/types'
 import { hasPartialCover } from '../rules/weaponAttack'
-import { Panel, Segmented } from './fields'
+import { CollapsiblePanel, Details, Segmented } from './fields'
 
 interface Props {
   target: Target
@@ -16,7 +16,7 @@ export const HitLocationPanel = ({ target }: Props) => {
   const max = Math.max(...chances.map((c) => c.probability))
 
   return (
-    <Panel title="Hit location" className="hitloc">
+    <CollapsiblePanel id="hit-location" title="Hit location" className="hitloc" summary={`${target.name}: ${ARC_NAMES[target.attackDirection].toLowerCase()}`}>
       <p className="muted small-text">
         {target.name}: attack strikes the <strong>{ARC_NAMES[target.attackDirection].toLowerCase()}</strong>
         {target.attackDirection === 'rear' ? ' (rear armor)' : ''}.
@@ -52,8 +52,7 @@ export const HitLocationPanel = ({ target }: Props) => {
       </ul>
       {table === 'standard' && <p className="muted small-text">A roll of 2 may cause a through-armor critical hit.</p>}
 
-      <details className="damage">
-        <summary>Cluster Hits Table</summary>
+      <Details id="cluster-table" summary="Cluster Hits Table">
         <div className="table-scroll">
           <table className="cluster">
             <thead>
@@ -77,7 +76,7 @@ export const HitLocationPanel = ({ target }: Props) => {
           </table>
         </div>
         <p className="muted small-text">SRMs: one hit location per missile (2 dmg each). LRMs: one hit location per 5-missile group.</p>
-      </details>
-    </Panel>
+      </Details>
+    </CollapsiblePanel>
   )
 }

@@ -168,6 +168,26 @@ export const CollapsiblePanel = ({ id, title, summary, children, actions, classN
   )
 }
 
+/** A summary status for a collapsed card, colored by how urgent it is. */
+export const Status = ({ tone, children }: { tone: 'ok' | 'warn' | 'bad'; children: ReactNode }) => <span className={`summary-status summary-${tone}`}>{children}</span>
+
+/** Steps left in a card of rolls: amber while some remain, green once the turn's rolls are resolved. */
+export const PendingStatus = ({ pending, total }: { pending: number; total: number }) => {
+  if (pending > 0) return <Status tone="warn">{pending} to resolve</Status>
+  return total > 0 ? <Status tone="ok">{total} this turn, resolved</Status> : <>None this turn</>
+}
+
+/** A <details> section that remembers whether it is open. */
+export const Details = ({ id, summary, children, className = 'damage' }: { id: string; summary: ReactNode; children: ReactNode; className?: string }) => {
+  const [open, setOpen] = usePersistentState(`btc-open-${id}`, () => false)
+  return (
+    <details className={className} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>{summary}</summary>
+      {children}
+    </details>
+  )
+}
+
 export const Panel = ({ title, children, actions, className = '' }: { title: string; children: ReactNode; actions?: ReactNode; className?: string }) => {
   return (
     <section className={`panel ${className}`}>

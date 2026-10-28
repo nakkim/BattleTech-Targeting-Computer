@@ -173,6 +173,8 @@ input[type='checkbox']:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
+  /* Each card keeps its own height, so a folded one does not stretch to its neighbour. */
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -1225,6 +1227,23 @@ table.cluster tbody th {
 
 .panel.collapsed .panel-header {
   border-bottom: none;
+}
+
+/* Status words in a collapsed card's summary: amber to resolve, red when out of action, green when done. */
+.summary-status {
+  font-weight: 700;
+}
+
+.summary-warn {
+  color: var(--amber);
+}
+
+.summary-bad {
+  color: var(--red);
+}
+
+.summary-ok {
+  color: var(--accent);
 }
 
 .panel-summary {

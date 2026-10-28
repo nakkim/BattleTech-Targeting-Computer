@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { checkPilot, consciousnessTarget, KILLING_HITS, type ConsciousnessCheck, type PilotTurn } from '../rules/pilot'
-import { CollapsiblePanel } from './fields'
+import { CollapsiblePanel, Status } from './fields'
 import { RollInput, RollStep } from './Rolls'
 
 /** What the player does with MechWarrior damage: add or remove it, and enter Consciousness Rolls. */
@@ -96,8 +96,13 @@ export const PilotPanel = ({ pilot, pending, actions }: Props) => {
       className="pilot-panel"
       summary={
         <>
-          {killed ? 'Killed' : unconscious ? 'Unconscious' : `${hits} damage`}
-          {pending > 0 && <span className="hot"> · {pending} to resolve</span>}
+          {killed ? <Status tone="bad">Killed</Status> : unconscious ? <Status tone="bad">Unconscious</Status> : hits > 0 ? <Status tone="warn">{hits} damage</Status> : <Status tone="ok">Unhurt</Status>}
+          {pending > 0 && (
+            <>
+              {' · '}
+              <Status tone="warn">{pending} to resolve</Status>
+            </>
+          )}
         </>
       }
       actions={

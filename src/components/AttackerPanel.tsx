@@ -3,7 +3,7 @@ import { workingHeatSinks } from '../rules/heat'
 import { LOCATION_NAMES, MOVEMENT_NAMES } from '../rules/tables'
 import type { ArmState, Attacker, LegState, Location, MovementMode } from '../rules/types'
 import { WATER_OPTIONS } from './options'
-import { CollapsiblePanel, NumberField, Panel, Segmented, Toggle } from './fields'
+import { CollapsiblePanel, Details, NumberField, Segmented, Status, Toggle } from './fields'
 
 interface Props {
   attacker: Attacker
@@ -176,7 +176,30 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
   const { leftArm, rightArm } = attacker
   const anyArm = leftArm.present || rightArm.present
   return (
-    <Panel title="This turn" className="attacker">
+    <CollapsiblePanel
+      id="this-turn"
+      title="This turn"
+      className="attacker"
+      summary={
+        <>
+          {MOVEMENT_NAMES[attacker.movement]}
+          {attacker.hexesMoved > 0 && ` ${attacker.hexesMoved} hexes`} · heat {attacker.heat}
+          {isMechDestroyed(attacker) ? (
+            <>
+              {' · '}
+              <Status tone="bad">destroyed</Status>
+            </>
+          ) : (
+            (attacker.shutdown || attacker.prone) && (
+              <>
+                {' · '}
+                <Status tone={attacker.shutdown ? 'bad' : 'warn'}>{[attacker.shutdown && 'shut down', attacker.prone && 'prone'].filter(Boolean).join(', ')}</Status>
+              </>
+            )
+          )}
+        </>
+      }
+    >
       {isMechDestroyed(attacker) && (
         <ul className="messages">
           <li className="msg-error">
@@ -233,15 +256,19 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
           hint="Extra –1 heat each, max 6"
         />
       )}
-      <details className="damage">
-        <summary>
-          Critical damage
-          {attacker.destroyedLocations.length > 0 && (
-            <span className="summary-badge">
-              {isMechDestroyed(attacker) ? '\u2019Mech destroyed' : `${attacker.destroyedLocations.length} destroyed`}
-            </span>
-          )}
-        </summary>
+      <Details
+        id="critical-damage"
+        summary={
+          <>
+            Critical damage
+            {attacker.destroyedLocations.length > 0 && (
+              <span className="summary-badge">
+                {isMechDestroyed(attacker) ? '\u2019Mech destroyed' : `${attacker.destroyedLocations.length} destroyed`}
+              </span>
+            )}
+          </>
+        }
+      >
         <DestroyedLocations attacker={attacker} onChange={(destroyedLocations) => set({ destroyedLocations })} />
         <div className="limbs">
           <ArmDamage title="Left arm" arm={leftArm} loss={limbLoss(attacker, 'LA')} onChange={(leftArm) => set({ leftArm })} />
@@ -282,7 +309,7 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
           <Toggle label="Life support damaged" checked={attacker.lifeSupportHit} onChange={(v) => set({ lifeSupportHit: v })} title="The MechWarrior takes 1 damage in the Heat Phase at 15–25 heat, 2 at 26+" />
           <Toggle label="Cockpit destroyed" checked={attacker.cockpitHit} onChange={(v) => set({ cockpitHit: v })} title="The MechWarrior is killed and the ’Mech destroyed" />
         </div>
-      </details>
-    </Panel>
+      </Details>
+    </CollapsiblePanel>
   )
 }

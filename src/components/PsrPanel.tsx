@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PSR_CAUSES, PSR_PHASE_NAMES, type PsrCause, type PsrCheck, type PsrModifier, type PsrPhase } from '../rules/psr'
 import type { Attacker } from '../rules/types'
-import { CollapsiblePanel, Segmented } from './fields'
+import { CollapsiblePanel, PendingStatus, Segmented } from './fields'
 import { FallDamage, RollInput, RollStep } from './Rolls'
 
 /** What the player does with Piloting Skill Rolls: add one, enter dice results, and apply or undo falling damage. */
@@ -142,7 +142,7 @@ export const PsrPanel = ({ attacker, checks, pending, attackPhase, actions }: Pr
       id="psrs"
       title="Piloting Skill Rolls"
       className="psr-panel"
-      summary={pending > 0 ? <span className="hot">{pending} to resolve</span> : checks.length ? `${checks.length} this turn` : 'None this turn'}
+      summary={<PendingStatus pending={pending} total={checks.length} />}
     >
       <Segmented
         label="Damage and critical hits happen in the"

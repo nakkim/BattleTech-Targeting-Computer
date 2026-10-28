@@ -13,7 +13,6 @@ import { ARC_OPTIONS, TERRAIN_OPTIONS, WATER_OPTIONS } from "./options";
 import {
   CollapsiblePanel,
   NumberField,
-  Panel,
   Segmented,
   Toggle,
 } from "./fields";
@@ -76,9 +75,11 @@ export const TargetsPanel = ({
   const woods = woodsModifier(target);
 
   return (
-    <Panel
+    <CollapsiblePanel
+      id="targets"
       title="Targets"
       className="targets"
+      summary={`${targets.length} ${targets.length === 1 ? "target" : "targets"} · ${targets.find((t) => t.id === selectedId)?.name ?? ""}`}
       actions={
         <button type="button" className="small" onClick={add}>
           + Add target
@@ -284,7 +285,7 @@ export const TargetsPanel = ({
           </InfoButton>
         }
       />
-    </Panel>
+    </CollapsiblePanel>
   );
 };
 

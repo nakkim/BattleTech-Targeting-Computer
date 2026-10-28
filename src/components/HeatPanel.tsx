@@ -3,9 +3,9 @@ import type { HeatProjection } from '../rules/heat'
 import { heatEffects, workingHeatSinks } from '../rules/heat'
 import { ammoExplosionAvoid, LOCATION_NAMES, WEAPONS_BY_KEY } from '../rules/tables'
 import type { Attacker } from '../rules/types'
-import type { HeatPhase } from '../rules/heatPhase'
+import { pendingHeatSteps, type HeatPhase } from '../rules/heatPhase'
 import { useTracking } from '../state/mode'
-import { Panel } from './fields'
+import { CollapsiblePanel, Status } from './fields'
 import { HeatPhaseRolls, type HeatPhaseActions } from './HeatPhaseRolls'
 
 /** Which bin explodes if the heat explosion roll fails, and what it does. */
@@ -46,8 +46,26 @@ export const HeatPanel = ({ attacker, projection, phase, phaseActions }: HeatPan
   const current = attacker.heat
   const now = heatEffects(current)
   const level = Math.min(30, projection.next)
+  const pending = tracking && phase ? pendingHeatSteps(phase) : 0
   return (
-    <Panel title="Heat" className="heat">
+    <CollapsiblePanel
+      id="heat"
+      title="Heat"
+      className="heat"
+      summary={
+        <>
+          <Status tone={projection.next >= 14 ? 'bad' : projection.next >= 5 ? 'warn' : 'ok'}>
+            Heat {current} → {projection.next}
+          </Status>
+          {pending > 0 && (
+            <>
+              {' · '}
+              <Status tone="warn">{pending} to resolve</Status>
+            </>
+          )}
+        </>
+      }
+    >
       {phase && <HeatPhaseRolls phase={phase} attacker={attacker} tracking={tracking} {...phaseActions} />}
       <div className="heat-gauge" aria-label={`Projected heat ${projection.next}`}>
         <span className="heat-fill" style={{ width: `${(level / 30) * 100}%` }} />
@@ -104,6 +122,6 @@ export const HeatPanel = ({ attacker, projection, phase, phaseActions }: HeatPan
         </div>
       </div>
       {tracking && <AmmoAtRisk attacker={attacker} heat={projection.next} />}
-    </Panel>
+    </CollapsiblePanel>
   )
 }
