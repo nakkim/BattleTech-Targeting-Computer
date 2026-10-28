@@ -19,4 +19,15 @@ export default defineMech({
   ammo: [
     ['MG', 'CT'],
   ],
+  // Critical Hit Table, slot by slot from the top; null is an empty (Roll Again) slot.
+  criticalSlots: {
+    HD: ['Life Support', 'Sensors', 'Cockpit', null, 'Sensors', 'Life Support'],
+    CT: ['Engine', 'Engine', 'Engine', 'Gyro', 'Gyro', 'Gyro', 'Gyro', 'Engine', 'Engine', 'Engine', 'Heat Sink', 'Ammo MG'],
+    LT: ['Heat Sink', 'Heat Sink', 'ML', 'MG', null, null, null, null, null, null, null, null],
+    RT: ['Heat Sink', 'Heat Sink', 'Heat Sink', 'ML', 'MG', null, null, null, null, null, null, null],
+    LA: ['Shoulder', 'Upper Arm', 'PPC', 'PPC', 'PPC', null, null, null, null, null, null, null],
+    RA: ['Shoulder', 'Upper Arm', 'PPC', 'PPC', 'PPC', null, null, null, null, null, null, null],
+    LL: ['Hip', 'Upper Leg', 'Lower Leg', 'Foot', 'Heat Sink', 'Heat Sink'],
+    RL: ['Hip', 'Upper Leg', 'Lower Leg', 'Foot', 'Heat Sink', 'Heat Sink'],
+  },
 })

@@ -19,8 +19,22 @@ import {
   type PsrPhase,
   type PsrQueue,
 } from '../rules/psr'
-import { ammoExplosionAvoid, LOCATION_NAMES, WEAPONS_BY_KEY, type HitTable } from '../rules/tables'
-import { isMechDestroyed } from '../rules/destruction'
+import { ammoExplosionAvoid, LOCATION_NAMES, LOCATIONS, WEAPONS_BY_KEY, type HitTable } from '../rules/tables'
+import {
+  applyCritItem,
+  checkHits,
+  critCount,
+  critFields,
+  itemName,
+  newCritHit,
+  resolveCritHit,
+  type AppliedCrit,
+  type CritCheck,
+  type CritCheckKind,
+  type CritHitState,
+  type CritItem,
+} from '../rules/crits'
+import { isLocationDestroyed, isMechDestroyed } from '../rules/destruction'
 import type { Attacker, Location, MountedWeapon, Spotter, Target } from '../rules/types'
 import { createAttacker, createTarget, defaultSpotter, newId } from './defaults'
 import { buildMech, defaultMech } from './mechCatalog'
@@ -44,6 +58,8 @@ export interface UnitState {
   psrs: PsrQueue
   /** The MechWarrior's damage this turn and its Consciousness Rolls. */
   pilot: PilotTurn
+  /** Critical hit checks of this turn, made with physical dice. */
+  crits: CritCheck[]
   /** Phase that new damage and critical hits happen in, for the rolls they call for. */
   attackPhase: PsrPhase
   /** Damage taken this turn per phase, for the roll after 20 or more. */
@@ -75,6 +91,7 @@ export const newUnit = ({ attacker, weapons }: { attacker: Attacker; weapons: Mo
     heatPhase: null,
     psrs: noPsrs(),
     pilot: newPilotTurn(attacker),
+    crits: [],
     attackPhase: 'weapon',
     damageTaken: {},
   }
@@ -91,6 +108,7 @@ export const normalizeLance = (lance: LanceState): LanceState => {
       heatPhase: u.heatPhase ?? null,
       psrs: u.psrs ?? noPsrs(),
       pilot: u.pilot ?? newPilotTurn(createAttacker(u.attacker)),
+      crits: u.crits ?? [],
       attackPhase: u.attackPhase ?? 'weapon',
       damageTaken: u.damageTaken ?? {},
     })),
@@ -199,6 +217,16 @@ const syncPsrPilotDamage = (unit: UnitState): UnitState => {
   return next
 }
 
+/** Drop critical hit checks of falls whose damage was taken back. */
+const dropFallCrits = (unit: UnitState): UnitState => {
+  let next = unit
+  for (const check of unit.crits) {
+    const id = check.source?.startsWith('fall:') ? check.source.slice(5) : null
+    if (id && !unit.psrs.rolls.find((p) => p.id === id)?.fall.applied) next = removeCritsBySource(next, check.source!)
+  }
+  return next
+}
+
 /** Set the MechWarrior's damage and consciousness from the turn's Consciousness Rolls. */
 const settlePilot = (unit: UnitState): UnitState => {
   const { hits, unconscious } = checkPilot(unit.pilot)
@@ -210,10 +238,10 @@ const settlePilot = (unit: UnitState): UnitState => {
  * MechWarrior, and an unconscious MechWarrior fails every later roll.
  */
 const settle = (unit: UnitState): UnitState => {
-  const key = (u: UnitState) => JSON.stringify([u.psrs, u.pilot, u.attacker.prone, u.attacker.unconscious, u.attacker.pilotHits])
+  const key = (u: UnitState) => JSON.stringify([u.psrs, u.pilot, u.crits, u.attacker.prone, u.attacker.unconscious, u.attacker.pilotHits])
   let next = unit
   for (let i = 0; i < 5; i++) {
-    const settled = settlePilot(syncPsrPilotDamage(settlePsrRolls(next)))
+    const settled = settlePilot(syncPsrPilotDamage(dropFallCrits(settlePsrRolls(next))))
     if (key(settled) === key(next)) return settled
     next = settled
   }
@@ -315,10 +343,15 @@ export const advanceTurn = (unit: UnitState, tracking = true): UnitState => {
     heatPhase,
     psrs: noPsrs(),
     pilot: newPilotTurn(attacker, tracking ? wakeRoll(unit) : null),
+    crits: [],
     attackPhase: 'weapon',
     damageTaken: {},
   }
-  return tracking ? syncShutdownPsr(next) : next
+  if (!tracking) return next
+  // Damaged life support: 1 damage at 15–25 heat, 2 at 26+ (p. 33).
+  const lifeSupport = heated.lifeSupportHit && heated.heat >= 15 ? (heated.heat >= 26 ? 2 : 1) : 0
+  const hurt = lifeSupport ? addPilotDamage(next, 'Heat with damaged life support', lifeSupport, 'life-support') : next
+  return syncShutdownPsr(hurt)
 }
 
 export type HeatRoll = 'powerRoll' | 'ammoRoll'
@@ -380,14 +413,22 @@ export const applyFallDamage = (unit: UnitState, id: string): UnitState => {
   const rolls = fiveGroups(fallDamage(unit.attacker, levels)).map((_, i) => psr.fall.locationRolls[i] ?? null)
   if (rolls.some((r) => r === null)) return unit
   const { attacker, fall } = applyFall(unit.attacker, psr.fall.facingRoll, rolls as number[], { levels, rear })
-  return settle(updatePsr({ ...unit, attacker }, id, (p) => ({ ...p, fall: { ...p.fall, applied: fall } })))
+  // Falling damage checks for critical hits like any other: internal structure, and a location roll of 2.
+  const source = `fall:${id}`
+  const checks = critChecksFromDamage(unit.attacker, attacker, psr.phase, source)
+  let next: UnitState = { ...unit, attacker, crits: [...unit.crits, ...checks] }
+  fall.hits.forEach((hit, i) => {
+    if (rolls[i] === 2 && hit.steps.length) next = addThroughArmorCrit(next, hit.steps[0].location, source)
+  })
+  return settle(updatePsr(next, id, (p) => ({ ...p, fall: { ...p.fall, applied: fall } })))
 }
 
 /** Undo falling damage, keeping the rolls so they can be corrected. */
 export const undoFallDamage = (unit: UnitState, id: string): UnitState => {
   const psr = unit.psrs.rolls.find((p) => p.id === id)
   if (!psr?.fall.applied) return unit
-  return settle(updatePsr({ ...unit, attacker: { ...unit.attacker, ...psr.fall.applied.before } }, id, (p) => ({ ...p, fall: { ...p.fall, applied: null } })))
+  const undone = removeCritsBySource({ ...unit, attacker: { ...unit.attacker, ...psr.fall.applied.before } }, `fall:${id}`)
+  return settle(updatePsr(undone, id, (p) => ({ ...p, fall: { ...p.fall, applied: null } })))
 }
 
 const LEG_ROLLS: [Location, 'leftLeg' | 'rightLeg'][] = [
@@ -435,6 +476,9 @@ export const trackDamage = (before: UnitState, after: UnitState, phase: PsrPhase
     const damageTaken = total === 0 ? {} : { ...after.damageTaken, [phase]: Math.max(0, (after.damageTaken[phase] ?? 0) + dealt) }
     unit = { ...unit, damageTaken }
   }
+  unit = pruneCrits(unit)
+  const checks = critChecksFromDamage(before.attacker, unit.attacker, phase)
+  if (checks.length) unit = { ...unit, crits: [...unit.crits, ...checks] }
   const was = damageEvents(before.attacker, before.damageTaken)
   const now = damageEvents(unit.attacker, unit.damageTaken)
   for (const [source, cause] of now) {
@@ -449,10 +493,199 @@ export const trackDamage = (before: UnitState, after: UnitState, phase: PsrPhase
   return unit
 }
 
-/** Heat Phase and Piloting Skill Roll steps still to do. Only tracked play enters rolls. */
+/** Heat Phase, Piloting Skill Roll, MechWarrior and critical hit steps still to do. Only tracked play enters rolls. */
 export const pendingSteps = (unit: UnitState, tracking: boolean): number => {
   if (!tracking) return 0
-  return (unit.heatPhase ? pendingHeatSteps(unit.heatPhase) : 0) + pendingPsrSteps(unit.psrs, psrAttacker(unit)) + pendingPilotSteps(unit.pilot)
+  return (unit.heatPhase ? pendingHeatSteps(unit.heatPhase) : 0) + pendingPsrSteps(unit.psrs, psrAttacker(unit)) + pendingPilotSteps(unit.pilot) + pendingCritSteps(unit)
+}
+
+const hasLiveAmmo = (attacker: Attacker, location: Location): boolean =>
+  attacker.ammoBins.some((b) => b.location === location && b.shots > 0 && isExplosive(b.weaponKey))
+
+const newCritCheck = (location: Location, kind: CritCheckKind, phase: string, structure: number, source?: string): CritCheck => ({
+  id: newId('c'),
+  location,
+  kind,
+  phase,
+  source,
+  structure,
+  roll: null,
+  hits: [],
+  blownOff: null,
+})
+
+/**
+ * Critical hit checks for new damage: every location whose internal structure took damage
+ * and still stands, and a destroyed location that holds ammo that can explode (p. 31).
+ */
+const critChecksFromDamage = (before: Attacker, after: Attacker, phase: string, source?: string): CritCheck[] => {
+  if (isMechDestroyed(after)) return []
+  return LOCATIONS.flatMap((location) => {
+    const structure = after.structureDamage[location] ?? 0
+    if (structure <= (before.structureDamage[location] ?? 0)) return []
+    const destroyed = after.destroyedLocations.includes(location) && !before.destroyedLocations.includes(location)
+    if (destroyed) return hasLiveAmmo(after, location) ? [newCritCheck(location, 'destroyed', phase, structure, source)] : []
+    return isLocationDestroyed(after, location) ? [] : [newCritCheck(location, 'structure', phase, structure, source)]
+  })
+}
+
+/** Take back a critical hit's effects other than damage, and the MechWarrior damage of its explosion. */
+const revertCritHit = (unit: UnitState, check: CritCheck, index: number, withDamage: boolean): UnitState => {
+  const applied = check.hits[index]?.applied
+  if (!applied) return unit
+  const { armorDamage, structureDamage, destroyedLocations, ammoBins, ...components } = applied.before
+  const attacker = { ...unit.attacker, ...components, ...(withDamage ? { armorDamage, structureDamage, destroyedLocations, ammoBins } : {}) }
+  const weapons = applied.weaponId ? unit.weapons.map((w) => (w.id === applied.weaponId ? { ...w, destroyed: false } : w)) : unit.weapons
+  const crits = unit.crits.map((c) => (c.id === check.id ? { ...c, hits: c.hits.map((h, i) => (i === index ? { ...h, applied: null } : h)) } : c))
+  return removePilotDamage({ ...unit, attacker, weapons, crits }, `crit:${check.id}:${index}`)
+}
+
+/** Drop a check, taking back its critical hits' effects (their damage went with the hit that is undone). */
+const dropCheck = (unit: UnitState, check: CritCheck): UnitState => {
+  let next = unit
+  for (let i = check.hits.length - 1; i >= 0; i--) next = revertCritHit(next, check, i, false)
+  return { ...next, crits: next.crits.filter((c) => c.id !== check.id) }
+}
+
+/** Drop checks whose internal structure damage was undone. */
+const pruneCrits = (unit: UnitState): UnitState => {
+  let next = unit
+  for (const check of unit.crits) {
+    if ((next.attacker.structureDamage[check.location] ?? 0) < check.structure) next = dropCheck(next, next.crits.find((c) => c.id === check.id)!)
+  }
+  return next
+}
+
+/** Drop the checks a hit added, e.g. when the hit is undone. */
+export const removeCritsBySource = (unit: UnitState, source: string): UnitState => {
+  let next = unit
+  for (const check of unit.crits.filter((c) => c.source === source)) next = dropCheck(next, next.crits.find((c) => c.id === check.id)!)
+  return next
+}
+
+/** A hit location roll of 2: a critical hit check even without internal structure damage (p. 31). */
+export const addThroughArmorCrit = (unit: UnitState, location: Location, source: string): UnitState => {
+  if (isMechDestroyed(unit.attacker) || isLocationDestroyed(unit.attacker, location)) return unit
+  const check = newCritCheck(location, 'through-armor', unit.attackPhase, unit.attacker.structureDamage[location] ?? 0, source)
+  return { ...unit, crits: [...unit.crits, check] }
+}
+
+/** Whether a critical hit already struck the location in this phase: then extra hits are lost, not transferred. */
+const hitThisPhase = (unit: UnitState, phase: string) => (location: Location) =>
+  unit.crits.some((c) => c.phase === phase && c.hits.some((h) => h.applied?.location === location))
+
+export const critHitState = (unit: UnitState, check: CritCheck, index: number): CritHitState =>
+  resolveCritHit(unit.attacker, unit.weapons, check, check.hits[index], hitThisPhase(unit, check.phase))
+
+export const pendingCritSteps = (unit: UnitState): number =>
+  unit.crits.reduce((sum, check) => {
+    if (check.roll === null) return sum + 1
+    const { hits, blownOff } = checkHits(check)
+    const open = check.hits.slice(0, hits).filter((_, i) => ['roll', 'pick', 'ready'].includes(critHitState(unit, check, i).kind)).length
+    return sum + open + (blownOff && !check.blownOff ? 1 : 0)
+  }, 0)
+
+const updateCheck = (unit: UnitState, id: string, update: (check: CritCheck) => CritCheck): UnitState => ({
+  ...unit,
+  crits: unit.crits.map((c) => (c.id === id ? update(c) : c)),
+})
+
+/**
+ * Enter the Determining Critical Hits roll (null clears it). Critical hits beyond the new
+ * count, or a limb no longer blown off, are taken back.
+ */
+export const enterCritRoll = (unit: UnitState, id: string, value: number | null): UnitState => {
+  const check = unit.crits.find((c) => c.id === id)
+  if (!check) return unit
+  const { hits, blownOff } = value === null ? { hits: 0, blownOff: false } : critCount(value, check.location)
+  let next = unit
+  for (let i = check.hits.length - 1; i >= hits; i--) next = revertCritHit(next, check, i, true)
+  if (!blownOff && check.blownOff) next = { ...next, attacker: { ...next.attacker, ...check.blownOff.before } }
+  const kept = (next.crits.find((c) => c.id === id) ?? check).hits.slice(0, hits)
+  next = updateCheck(next, id, (c) => ({
+    ...c,
+    roll: value,
+    hits: [...kept, ...Array.from({ length: hits - kept.length }, newCritHit)],
+    blownOff: blownOff ? c.blownOff : null,
+  }))
+  return trackDamage(unit, next, check.phase as PsrPhase)
+}
+
+/** Enter one die of a critical slot roll: the block die or the slot die (null clears it). */
+export const enterCritDie = (unit: UnitState, id: string, index: number, attempt: number, die: 'block' | 'slot', value: number | null): UnitState =>
+  updateCheck(unit, id, (c) => ({
+    ...c,
+    hits: c.hits.map((h, i) => {
+      if (i !== index) return h
+      const attempts = h.attempts.slice(0, attempt + 1)
+      while (attempts.length <= attempt) attempts.push({ block: null, slot: null })
+      attempts[attempt] = { ...attempts[attempt], [die]: value }
+      return { ...h, attempts }
+    }),
+  }))
+
+/** Without a known Critical Hit Table: what the record sheet's slot holds. */
+export const pickCritItem = (unit: UnitState, id: string, index: number, item: CritItem | null): UnitState =>
+  updateCheck(unit, id, (c) => ({ ...c, hits: c.hits.map((h, i) => (i === index ? { ...h, picked: item } : h)) }))
+
+/** Apply a critical hit to the slot its dice found: its effect, any ammo explosion, and the rolls they call for. */
+export const applyCritHit = (unit: UnitState, id: string, index: number): UnitState => {
+  const check = unit.crits.find((c) => c.id === id)
+  if (!check) return unit
+  const state = critHitState(unit, check, index)
+  if (state.kind !== 'ready') return unit
+  const { attacker, weapons } = unit
+  const effect = applyCritItem(attacker, weapons, state.location, state.item, state.slot)
+  let damaged = effect.attacker
+  let explosion: AppliedCrit['explosion'] = null
+  if (effect.explodes) {
+    const result = explodeAmmo(damaged, effect.explodes)
+    damaged = result.attacker
+    explosion = { steps: result.steps, lost: result.lost }
+  }
+  const { armorDamage, structureDamage, destroyedLocations, ammoBins } = attacker
+  const applied: AppliedCrit = {
+    location: state.location,
+    slot: state.slot,
+    name: itemName(state.item),
+    effect: effect.effect,
+    before: { ...critFields(attacker), armorDamage, structureDamage, destroyedLocations, ammoBins },
+    weaponId: state.item.kind === 'weapon' && effect.weapons !== weapons ? state.item.weaponId : null,
+    explosion,
+  }
+  const next = updateCheck({ ...unit, attacker: damaged, weapons: effect.weapons }, id, (c) => ({
+    ...c,
+    hits: c.hits.map((h, i) => (i === index ? { ...h, applied } : h)),
+  }))
+  const tracked = trackDamage(unit, next, check.phase as PsrPhase)
+  return explosion ? addPilotDamage(tracked, 'Ammo explosion (critical hit)', 2, `crit:${id}:${index}`) : tracked
+}
+
+/** Undo a critical hit: its effect and the damage of its explosion. */
+export const undoCritHit = (unit: UnitState, id: string, index: number): UnitState => {
+  const check = unit.crits.find((c) => c.id === id)
+  if (!check?.hits[index]?.applied) return unit
+  return trackDamage(unit, revertCritHit(unit, check, index, true), check.phase as PsrPhase)
+}
+
+/** A 12 on a limb or the head: blow it off. Its armor and internal structure are not lost (p. 32). */
+export const applyBlownOff = (unit: UnitState, id: string): UnitState => {
+  const check = unit.crits.find((c) => c.id === id)
+  if (!check || check.blownOff) return unit
+  const { armorDamage, structureDamage, destroyedLocations, ammoBins } = unit.attacker
+  const next = updateCheck(
+    { ...unit, attacker: { ...unit.attacker, destroyedLocations: [...destroyedLocations, check.location] } },
+    id,
+    (c) => ({ ...c, blownOff: { before: { armorDamage, structureDamage, destroyedLocations, ammoBins } } }),
+  )
+  return trackDamage(unit, next, check.phase as PsrPhase)
+}
+
+export const undoBlownOff = (unit: UnitState, id: string): UnitState => {
+  const check = unit.crits.find((c) => c.id === id)
+  if (!check?.blownOff) return unit
+  const next = updateCheck({ ...unit, attacker: { ...unit.attacker, ...check.blownOff.before } }, id, (c) => ({ ...c, blownOff: null }))
+  return trackDamage(unit, next, check.phase as PsrPhase)
 }
 
 /** Explode an ammo bin after a failed heat roll, keeping what it changed so it can be undone. */

@@ -10,6 +10,15 @@ import type { Attacker, Location, Target } from './types'
 import { buildMech, MECHS } from '../state/mechCatalog'
 import {
   addPilotDamage,
+  addThroughArmorCrit,
+  applyBlownOff,
+  applyCritHit,
+  critHitState,
+  enterCritDie,
+  enterCritRoll,
+  pendingCritSteps,
+  pickCritItem,
+  undoCritHit,
   addPsr,
   advanceTurn,
   applyFallDamage,
@@ -31,6 +40,8 @@ import {
   type UnitState,
 } from '../state/unit'
 import { powerCheck } from './heatPhase'
+import { critCount, critLocation } from './crits'
+import { isMechDestroyed } from './destruction'
 import { checkPilot, consciousnessTarget } from './pilot'
 import { checkPsrs, fallDamage, fallHitLocation, fallSide, fiveGroups, psrDamageModifiers } from './psr'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
@@ -739,5 +750,139 @@ describe('MechWarrior damage', () => {
     unit = enterWakeRoll(unit, 3)
     expect(unit.attacker.unconscious).toBe(false)
     expect(unit.attacker.pilotHits).toBe(1)
+  })
+})
+
+describe('Critical hits', () => {
+  const wolverine = () => {
+    const { attacker, weapons } = buildMech(MECHS.find((m) => m.name === 'Wolverine WVR-6R')!)
+    return newUnit({ attacker, weapons })
+  }
+  const hit = (unit: UnitState, location: Location, amount: number) => trackDamage(unit, { ...unit, attacker: applyDamage(unit.attacker, location, amount).attacker })
+  // 16 armor on the right arm: 18 damage reaches 2 internal structure.
+  const armCrit = (roll = 9) => {
+    const unit = hit(wolverine(), 'RA', 18)
+    return enterCritRoll(unit, unit.crits[0].id, roll)
+  }
+
+  it('reads the Determining Critical Hits Table', () => {
+    expect([7, 8, 9, 10, 11].map((r) => critCount(r, 'CT').hits)).toEqual([0, 1, 1, 2, 2])
+    expect(critCount(12, 'LT')).toEqual({ hits: 3, blownOff: false })
+    expect(critCount(12, 'LA')).toEqual({ hits: 0, blownOff: true })
+    expect(critCount(12, 'HD')).toEqual({ hits: 0, blownOff: true })
+  })
+
+  it('checks a location when its internal structure is damaged, and drops the check when the damage is undone', () => {
+    const armorOnly = hit(wolverine(), 'RA', 10)
+    expect(armorOnly.crits).toEqual([])
+    const unit = hit(armorOnly, 'RA', 8)
+    expect(unit.crits.map((c) => [c.location, c.kind])).toEqual([['RA', 'structure']])
+    expect(pendingCritSteps(unit)).toBe(1)
+    expect(trackDamage(unit, armorOnly).crits).toEqual([])
+  })
+
+  it('destroys the weapon in the rolled slot, and undoes it', () => {
+    let unit = armCrit()
+    const id = unit.crits[0].id
+    // Right arm: Shoulder, Upper Arm, Lower Arm, Hand, AC5 ×4, Ammo AC5, then empty. Block 4–6, slot 1: the AC/5.
+    expect(critHitState(unit, unit.crits[0], 0)).toMatchObject({ kind: 'roll', needsBlock: true })
+    unit = enterCritDie(enterCritDie(unit, id, 0, 0, 'block', 4), id, 0, 0, 'slot', 1)
+    expect(critHitState(unit, unit.crits[0], 0)).toMatchObject({ kind: 'ready', slot: 6, item: { kind: 'weapon', key: 'AC5' } })
+    unit = applyCritHit(unit, id, 0)
+    expect(unit.weapons.find((w) => w.weaponKey === 'AC5')?.destroyed).toBe(true)
+    expect(unit.attacker.critHits.RA).toEqual([6])
+    expect(firingWeapons(unit.attacker, unit.weapons).some((w) => w.weaponKey === 'AC5')).toBe(false)
+    expect(pendingCritSteps(unit)).toBe(0)
+    const undone = undoCritHit(unit, id, 0)
+    expect(undone.weapons.find((w) => w.weaponKey === 'AC5')?.destroyed).toBe(false)
+    expect(undone.attacker.critHits.RA ?? []).toEqual([])
+  })
+
+  it('rolls again on an empty slot', () => {
+    let unit = armCrit()
+    const id = unit.crits[0].id
+    unit = enterCritDie(enterCritDie(unit, id, 0, 0, 'block', 6), id, 0, 0, 'slot', 6)
+    expect(critHitState(unit, unit.crits[0], 0)).toMatchObject({ kind: 'roll', attempt: 1, tries: [{ slot: 11, reason: 'empty' }] })
+    unit = enterCritDie(enterCritDie(unit, id, 0, 1, 'block', 1), id, 0, 1, 'slot', 4)
+    expect(critHitState(unit, unit.crits[0], 0)).toMatchObject({ kind: 'ready', slot: 3, item: { kind: 'component', name: 'Hand' } })
+    unit = applyCritHit(unit, id, 0)
+    expect(unit.attacker.rightArm.handHit).toBe(true)
+  })
+
+  it('explodes ammo it hits: damage, MechWarrior damage, and new checks where the damage lands', () => {
+    let unit = armCrit()
+    // Two AC/5 shots left: 10 damage, 7 to destroy the arm and 3 into the right torso.
+    unit = { ...unit, attacker: { ...unit.attacker, ammoBins: unit.attacker.ammoBins.map((b) => (b.weaponKey === 'AC5' ? { ...b, shots: 2 } : b)) } }
+    const id = unit.crits[0].id
+    unit = enterCritDie(enterCritDie(unit, id, 0, 0, 'block', 5), id, 0, 0, 'slot', 3)
+    unit = applyCritHit(unit, id, 0)
+    expect(unit.attacker.destroyedLocations).toContain('RA')
+    expect(unit.attacker.pilotHits).toBe(2)
+    expect(unit.crits.slice(1).map((c) => c.location)).toEqual(['RT'])
+    const undone = undoCritHit(unit, id, 0)
+    expect(undone.attacker.destroyedLocations).toEqual([])
+    expect(undone.attacker.pilotHits).toBe(0)
+    expect(undone.crits.length).toBe(1)
+  })
+
+  it('adds a Piloting Skill Roll for a leg actuator hit', () => {
+    let unit = hit(wolverine(), 'LL', 18)
+    const id = unit.crits[0].id
+    unit = enterCritRoll(unit, id, 8)
+    // Left leg: Hip, Upper Leg, Lower Leg, Foot, Jump Jet ×2. Slot 4: the foot.
+    unit = applyCritHit(enterCritDie(unit, id, 0, 0, 'slot', 4), id, 0)
+    expect(unit.attacker.leftLeg.footHit).toBe(true)
+    expect(unit.psrs.rolls.map((p) => p.cause)).toEqual(['legActuator'])
+  })
+
+  it('blows off a limb on a 12, without losing its armor', () => {
+    let unit = armCrit(12)
+    expect(unit.crits[0].hits).toEqual([])
+    unit = applyBlownOff(unit, unit.crits[0].id)
+    expect(unit.attacker.destroyedLocations).toEqual(['RA'])
+    expect(unit.attacker.armorDamage.RA).toBe(16)
+  })
+
+  it('transfers a critical hit inward when nothing is left to hit, unless hit this phase', () => {
+    const { attacker } = wolverine()
+    // The left torso holds only the SRM 6 and its ammo, all hit before.
+    const hitBefore = { ...attacker, critHits: { LT: [0, 1, 2] } }
+    expect(critLocation(hitBefore, 'LT', () => false)).toBe('CT')
+    expect(critLocation(hitBefore, 'LT', (l) => l === 'LT')).toBeNull()
+  })
+
+  it('destroys the Mech on a third engine hit', () => {
+    let unit = hit(wolverine(), 'CT', 30)
+    for (const n of [1, 2, 3]) {
+      const id = unit.crits[unit.crits.length - 1].id
+      unit = enterCritRoll(unit, id, 8)
+      // Center torso slot 1 of the upper block: the engine. Later hits land on the next engine slots.
+      unit = enterCritDie(enterCritDie(unit, id, 0, 0, 'block', 1), id, 0, 0, 'slot', n)
+      unit = applyCritHit(unit, id, 0)
+      if (n < 3) unit = hit(unit, 'CT', 1)
+    }
+    expect(unit.attacker.engineHits).toBe(3)
+    expect(isMechDestroyed(unit.attacker)).toBe(true)
+  })
+
+  it('checks a through-armor critical without internal structure damage', () => {
+    const unit = addThroughArmorCrit(wolverine(), 'CT', 'hit-1')
+    expect(unit.crits.map((c) => c.kind)).toEqual(['through-armor'])
+  })
+
+  it('lets the player pick what the slot holds without a known Critical Hit Table', () => {
+    let unit = newUnit({ attacker: createAttacker({ tonnage: 50 }), weapons: [] })
+    unit = hit(unit, 'CT', 30)
+    const id = unit.crits[0].id
+    unit = enterCritRoll(unit, id, 8)
+    expect(critHitState(unit, unit.crits[0], 0).kind).toBe('pick')
+    unit = applyCritHit(pickCritItem(unit, id, 0, { kind: 'component', name: 'Gyro' }), id, 0)
+    expect(unit.attacker.gyroHits).toBe(1)
+  })
+
+  it('hurts the MechWarrior in the Heat Phase with life support out', () => {
+    const unit = newUnit({ attacker: createAttacker({ heat: 26, heatSinks: 0, lifeSupportHit: true }), weapons: [] })
+    expect(advanceTurn(unit).attacker.pilotHits).toBe(2)
+    expect(advanceTurn({ ...unit, attacker: { ...unit.attacker, heat: 15 } }).attacker.pilotHits).toBe(1)
   })
 })

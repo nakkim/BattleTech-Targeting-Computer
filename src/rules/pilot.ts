@@ -10,7 +10,8 @@ export const consciousnessTarget = (hits: number): number | null => {
   return hits >= KILLING_HITS ? null : CONSCIOUSNESS[Math.max(1, hits)]
 }
 
-export const isPilotKilled = (attacker: Pick<Attacker, 'pilotHits'>): boolean => attacker.pilotHits >= KILLING_HITS
+/** Killed by a 6th point of damage or a cockpit critical hit (p. 32). */
+export const isPilotKilled = (attacker: Pick<Attacker, 'pilotHits'> & Partial<Pick<Attacker, 'cockpitHit'>>): boolean => attacker.pilotHits >= KILLING_HITS || attacker.cockpitHit === true
 
 /** The 'Mech cannot move or act: shut down, or its MechWarrior unconscious or dead (p. 11). */
 export const isImmobile = (attacker: Pick<Attacker, 'shutdown' | 'unconscious' | 'pilotHits'>): boolean => {

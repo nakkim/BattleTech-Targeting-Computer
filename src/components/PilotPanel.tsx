@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { checkPilot, consciousnessTarget, KILLING_HITS, type ConsciousnessCheck, type PilotTurn } from '../rules/pilot'
-import { Panel } from './fields'
+import { CollapsiblePanel } from './fields'
 import { RollInput, RollStep } from './Rolls'
 
 /** What the player does with MechWarrior damage: add or remove it, and enter Consciousness Rolls. */
@@ -14,6 +14,8 @@ export interface PilotActions {
 
 interface Props {
   pilot: PilotTurn
+  /** Steps still to do, shown while the card is collapsed. */
+  pending: number
   actions: PilotActions
 }
 
@@ -84,13 +86,20 @@ const ConsciousnessRoll = ({ check, roll, onRoll }: { check: ConsciousnessCheck;
 }
 
 /** The MechWarrior: damage taken, Consciousness Rolls made with physical dice, and waking up. */
-export const PilotPanel = ({ pilot, actions }: Props) => {
+export const PilotPanel = ({ pilot, pending, actions }: Props) => {
   const { checks, hits, unconscious, killed } = checkPilot(pilot)
   const wake = pilot.wake
   return (
-    <Panel
+    <CollapsiblePanel
+      id="pilot"
       title="MechWarrior"
       className="pilot-panel"
+      summary={
+        <>
+          {killed ? 'Killed' : unconscious ? 'Unconscious' : `${hits} damage`}
+          {pending > 0 && <span className="hot"> · {pending} to resolve</span>}
+        </>
+      }
       actions={
         <button type="button" className="small ghost" onClick={actions.onHeal} title="Clear all MechWarrior damage">
           Heal
@@ -140,6 +149,6 @@ export const PilotPanel = ({ pilot, actions }: Props) => {
           ))}
         </div>
       )}
-    </Panel>
+    </CollapsiblePanel>
   )
 }

@@ -31,9 +31,9 @@ export const OTHER_MECH: MechDefinition = {
 
 /** A fresh attacker and loadout from a 'Mech model. Weapons aim at the given target. */
 export const buildMech = (mech: MechDefinition, targetId = ''): { attacker: Attacker; weapons: MountedWeapon[] } => {
-  const { name, tonnage, heatSinks, leftArm, rightArm, armor, weapons, ammo = [] } = mech
+  const { name, tonnage, heatSinks, leftArm, rightArm, armor, weapons, ammo = [], criticalSlots = null } = mech
   return {
-    attacker: createAttacker({ name, tonnage, heatSinks, leftArm, rightArm, armor: { ...armor }, ammoBins: fillAmmoBins(ammo) }),
+    attacker: createAttacker({ name, tonnage, heatSinks, leftArm, rightArm, armor: { ...armor }, ammoBins: fillAmmoBins(ammo), criticalSlots }),
     weapons: weapons.map(([weaponKey, location, mount]) => ({ ...newWeapon(weaponKey, location, targetId), rear: mount === 'rear' })),
   }
 }

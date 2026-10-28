@@ -259,7 +259,12 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
         <Segmented
           label="Engine hits"
           value={attacker.engineHits}
-          options={[0, 1, 2].map((n) => ({ value: n, label: String(n) }))}
+          options={[
+            { value: 0, label: '0' },
+            { value: 1, label: '1' },
+            { value: 2, label: '2' },
+            { value: 3, label: '3 (destroyed)' },
+          ]}
           onChange={(v) => set({ engineHits: v })}
         />
         <Segmented
@@ -273,6 +278,10 @@ export const AttackerPanel = ({ attacker, onChange }: Props) => {
           onChange={(v) => set({ gyroHits: v })}
           title="Damaged: +3 to Piloting Skill Rolls. Destroyed: +3 more, and the ’Mech falls and cannot stand"
         />
+        <div className="toggles">
+          <Toggle label="Life support damaged" checked={attacker.lifeSupportHit} onChange={(v) => set({ lifeSupportHit: v })} title="The MechWarrior takes 1 damage in the Heat Phase at 15–25 heat, 2 at 26+" />
+          <Toggle label="Cockpit destroyed" checked={attacker.cockpitHit} onChange={(v) => set({ cockpitHit: v })} title="The MechWarrior is killed and the ’Mech destroyed" />
+        </div>
       </details>
     </Panel>
   )

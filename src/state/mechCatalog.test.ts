@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { usesAmmo } from '../rules/ammo'
 import { maxArmor, REAR_FACING } from '../rules/damage'
 import { hasLocation } from '../rules/destruction'
+import { itemAt, slotCount } from '../rules/crits'
 import { LOCATIONS, WEAPONS_BY_KEY } from '../rules/tables'
 import { buildMech, defaultMech, MECHS, OTHER_MECH } from './mechCatalog'
 
@@ -32,6 +33,25 @@ describe('mech catalog', () => {
         expect(usesAmmo(bin.weaponKey), bin.weaponKey).toBe(true)
         expect(weapons.some((w) => w.weaponKey === bin.weaponKey), `${bin.weaponKey} ammo without the weapon`).toBe(true)
         expect(hasLocation(attacker, bin.location)).toBe(true)
+      }
+    })
+    it('has a Critical Hit Table that matches its weapons and ammo', () => {
+      const slots = mech.criticalSlots
+      expect(slots, 'criticalSlots').toBeDefined()
+      for (const l of LOCATIONS) {
+        const table = slots![l]
+        expect(table.length, l).toBe(slotCount(l))
+        // Every mounted weapon and ammo bin has a slot of its own.
+        for (const [i, w] of weapons.entries()) {
+          const item = itemAt(attacker, weapons, w.location, slots![w.location].findIndex((_, s) => {
+            const at = itemAt(attacker, weapons, w.location, s)
+            return at.kind === 'weapon' && at.weaponId === w.id
+          }))
+          expect(item.kind === 'weapon' && item.weaponId, `${w.weaponKey} #${i} in ${w.location}`).toBe(w.id)
+        }
+        for (const bin of attacker.ammoBins.filter((b) => b.location === l)) {
+          expect(table.some((_, s) => { const at = itemAt(attacker, weapons, l, s); return at.kind === 'ammo' && at.binId === bin.id }), `${bin.weaponKey} ammo in ${l}`).toBe(true)
+        }
       }
     })
     it('stays within maximum armor', () => {

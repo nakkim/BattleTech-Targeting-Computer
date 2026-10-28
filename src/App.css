@@ -1926,6 +1926,53 @@ table.cluster tbody th {
   padding: 4px 8px;
 }
 
+.crit-hit-roll {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+
+.crit-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 4px 12px;
+}
+
+.crit-table {
+  margin: 0;
+  padding-left: 1.6em;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.crit-block {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.crit-table li.crit-empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.crit-table li.crit-hit {
+  text-decoration: line-through;
+  color: var(--text-dim);
+}
+
+.crit-table li.crit-marked {
+  background: var(--red-dim);
+  color: var(--red);
+  font-weight: 700;
+}
+
+.msg-error-text {
+  color: var(--red);
+}
+
 .pilot-track {
   width: 100%;
   table-layout: fixed;

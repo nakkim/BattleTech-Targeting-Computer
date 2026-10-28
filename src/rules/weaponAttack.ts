@@ -163,6 +163,7 @@ export const resolveWeaponAttack = (weapon: MountedWeapon, ctx: WeaponAttackCont
   // Ability to fire at all.
   const lost = destroyedReason(attacker, weapon.location)
   if (lost) reasons.push(`${lost}: weapon cannot fire`)
+  if (weapon.destroyed) reasons.push('Destroyed by a critical hit')
   if (attacker.shutdown) reasons.push('’Mech is shut down')
   if (isPilotKilled(attacker)) reasons.push('MechWarrior killed')
   else if (attacker.unconscious) reasons.push('MechWarrior unconscious')

@@ -1,4 +1,4 @@
-import type { ArmorFacing, ArmState, Location } from '../rules/types'
+import type { ArmorFacing, ArmState, CriticalSlots, Location } from '../rules/types'
 
 /**
  * A weapon and its location on the record sheet, e.g. ['ML', 'RA'].
@@ -22,6 +22,8 @@ export interface MechDefinition {
   weapons: WeaponMount[]
   /** One entry per full ton of ammunition: the weapon it is for and its location. */
   ammo?: [weaponKey: string, location: Location][]
+  /** The Critical Hit Table, slot by slot (see CritSlot). Without it, the player reads critical hits off the record sheet. */
+  criticalSlots?: CriticalSlots
 }
 
 /** Identity helper so 'Mech files get type checking and editor autocomplete. */

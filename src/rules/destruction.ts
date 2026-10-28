@@ -1,10 +1,10 @@
 import { LOCATION_NAMES } from './tables'
 import type { Attacker, Location, MountedWeapon } from './types'
 
-/** Destroying the head or center torso destroys the whole 'Mech (p. 34). */
-export const isMechDestroyed = (attacker: Pick<Attacker, 'destroyedLocations'>): boolean => {
+/** Destroying the head or center torso, a third engine hit or a cockpit hit destroys the whole 'Mech (pp. 32, 34). */
+export const isMechDestroyed = (attacker: Pick<Attacker, 'destroyedLocations'> & Partial<Pick<Attacker, 'engineHits' | 'cockpitHit'>>): boolean => {
   const lost = attacker.destroyedLocations
-  return lost.includes('HD') || lost.includes('CT')
+  return lost.includes('HD') || lost.includes('CT') || (attacker.engineHits ?? 0) >= 3 || attacker.cockpitHit === true
 }
 
 /** Fields that decide whether a location is still there. */
@@ -45,6 +45,6 @@ export const destroyedReason = (attacker: LocationState, location: Location): st
 /** Weapons that are declared to fire and still have an intact location. An immobile 'Mech fires nothing. */
 export const declaredWeapons = (attacker: LocationState & Partial<Pick<Attacker, 'shutdown' | 'unconscious' | 'pilotHits'>>, weapons: MountedWeapon[]): MountedWeapon[] => {
   if (attacker.shutdown || attacker.unconscious || (attacker.pilotHits ?? 0) >= 6) return []
-  return weapons.filter((w) => w.fire && !isLocationDestroyed(attacker, w.location))
+  return weapons.filter((w) => w.fire && !w.destroyed && !isLocationDestroyed(attacker, w.location))
 }
 

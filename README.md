@@ -18,7 +18,7 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - Apply a hit to a location: armor takes it first, then internal structure. A location with no internal structure left is destroyed, and the rest of the damage transfers inward. Rear hits stay on rear armor.
   - Ammo explosions damage internal structure directly, skipping armor.
   - A report lists what each location took, when to roll for critical hits, and MechWarrior damage. **Undo** reverts the last hit and **Repair** clears all damage.
-- **Critical damage**: mark destroyed locations, damaged actuators, destroyed heat sinks, engine hits and gyro hits. A side torso takes its arm with it, and a destroyed head or center torso destroys the 'Mech.
+- **Critical damage**: mark destroyed locations, damaged actuators, destroyed heat sinks, engine hits (destroyed at 3), gyro hits, damaged life support and a destroyed cockpit. A side torso takes its arm with it, and a destroyed head or center torso destroys the 'Mech.
 - **Physical attacks**: punch, kick, club, hatchet, push, charge and DFA. Shows Target Numbers, damage groups, hit tables, level differences and actuator damage.
 - **Hit location**: chance of each location by attack direction (standard, punch and kick tables), plus the Cluster Hits Table.
 - **Heat**: projects heat after the Heat Phase and shows the heat effects. At 19 heat or more it shows the roll to avoid an ammo explosion and which bin would explode.
@@ -41,6 +41,13 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - Each point of damage asks for a 2D6 Consciousness Roll; once the MechWarrior is unconscious, no more rolls that turn.
   - An unconscious or dead MechWarrior makes the 'Mech immobile: no weapon or physical attacks, and every Piloting Skill Roll fails. A fall cannot make its own roll fail.
   - After a full turn unconscious, the turn after shows the End Phase roll to wake up. Lance tabs show **UNCONSCIOUS** or **PILOT KILLED**, and **Heal** clears the damage.
+- **Critical hits** (Track stats mode): each location whose internal structure takes damage, and each hit location roll of 2 (tick **Hit location roll of 2** under Take damage; falls check theirs), gets a Determining Critical Hits roll.
+  - Catalog 'Mechs carry their real Critical Hit Table, from the MegaMek unit files. The card shows it, asks for the 1D6 block and slot rolls, rolls again on empty or already hit slots, and transfers or loses hits with nothing left to hit.
+  - **Apply critical hit** applies the effect: actuators (with their Piloting Skill Rolls), engine (destroyed at 3), gyro, sensors, cockpit, life support, heat sinks, weapons (they can no longer fire) and ammo, which explodes for its damage and 2 MechWarrior damage. A 12 blows off a limb or the head. Every step has Undo.
+  - A destroyed location only checks when it holds ammo that can explode; hits on anything else are discarded.
+  - Without a known table (a custom 'Mech), you roll on your record sheet and pick what the slot holds.
+  - Damaged life support hurts the MechWarrior in the Heat Phase: 1 damage at 15–25 heat, 2 at 26+.
+- **Collapsible cards**: Critical hits, Piloting Skill Rolls and MechWarrior fold up like the other cards, showing what is left to resolve.
 - **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Plain 2D6 only works out hit or miss: ammo never runs out, and the armor, ammunition and ammo explosion parts are hidden. Tracked values are kept for switching back.
 - **Theme**: a header switch picks light or dark. The first visit follows the system setting.
 - Cards can be hidden, and the app saves its state in localStorage.

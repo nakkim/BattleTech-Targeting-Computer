@@ -17,6 +17,8 @@ export interface WeaponSpec {
   name: string
   category: WeaponCategory
   heat: number
+  /** Critical slots the weapon fills on the record sheet. */
+  slots: number
   /** Damage per hit, or per missile for missile weapons. */
   damage: number
   /** Number of missiles per shot (missile weapons only). */
@@ -49,6 +51,17 @@ export interface LegState {
   lowerLegHit: boolean
   footHit: boolean
 }
+
+/**
+ * What one critical slot holds: an actuator ('Shoulder', 'Upper Arm', 'Lower Arm', 'Hand',
+ * 'Hip', 'Upper Leg', 'Lower Leg', 'Foot'), 'Engine', 'Gyro', 'Sensors', 'Cockpit',
+ * 'Life Support', 'Heat Sink', 'Jump Jet', 'CASE', a weapon key ('ML', or 'ML (R)' when
+ * rear-firing) or ammo ('Ammo LRM20'); null for an empty (Roll Again) slot.
+ */
+export type CritSlot = string | null
+
+/** Critical Hit Table: 6 slots for the head and legs, 12 for the torsos and arms. */
+export type CriticalSlots = Record<Location, CritSlot[]>
 
 export interface Attacker {
   name: string
@@ -95,6 +108,14 @@ export interface Attacker {
   structureDamage: Partial<Record<Location, number>>
   /** One bin per ton of ammunition. Ammo types without bins are not tracked. */
   ammoBins: AmmoBin[]
+  /** The record sheet's Critical Hit Table; null when not known. */
+  criticalSlots: CriticalSlots | null
+  /** Critical slots hit, by location (0-based, from the top of the table). */
+  critHits: Partial<Record<Location, number[]>>
+  /** A critical hit to the cockpit kills the MechWarrior and destroys the 'Mech (p. 32). */
+  cockpitHit: boolean
+  /** Damaged life support: heat of 15+ hurts the MechWarrior (p. 33). */
+  lifeSupportHit: boolean
 }
 
 /** One ton of ammunition in a critical slot of the record sheet. */
@@ -148,6 +169,8 @@ export interface MountedWeapon {
   targetId: string
   indirect: boolean
   aimedAt: Location | null
+  /** Destroyed by a critical hit. */
+  destroyed?: boolean
 }
 
 export type Gator = 'G' | 'A' | 'T' | 'O' | 'R'

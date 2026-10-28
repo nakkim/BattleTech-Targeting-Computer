@@ -8,6 +8,18 @@ import { checkTargets, resolveWeaponAttack, type WeaponAttackResult } from '../r
 import { rulesAttacker, useTracking } from '../state/mode'
 import {
   addPilotDamage,
+  addThroughArmorCrit,
+  applyBlownOff,
+  applyCritHit,
+  critHitState,
+  enterCritDie,
+  enterCritRoll,
+  pendingCritSteps,
+  pickCritItem,
+  psrAttacker,
+  removeCritsBySource,
+  undoBlownOff,
+  undoCritHit,
   addPsr,
   applyFallDamage,
   enterConsciousnessRoll,
@@ -31,9 +43,11 @@ import { HeatPanel } from './HeatPanel'
 import { HitLocationPanel } from './HitLocationPanel'
 import { MechDialog } from './MechDialog'
 import { PhysicalPanel } from './PhysicalPanel'
+import { CritPanel } from './CritPanel'
 import { PilotPanel } from './PilotPanel'
 import { PsrPanel } from './PsrPanel'
-import { PSR_PHASE_NAMES, type PsrPhase } from '../rules/psr'
+import { pendingPsrSteps, PSR_PHASE_NAMES, type PsrPhase } from '../rules/psr'
+import { pendingPilotSteps } from '../rules/pilot'
 import { TargetDataPanel, TargetsPanel } from './TargetsPanel'
 import { WeaponsPanel } from './WeaponsPanel'
 
@@ -111,6 +125,7 @@ export const UnitView = ({ unit, onChange }: Props) => {
             damagePhase={PSR_PHASE_NAMES[unit.attackPhase]}
             onChange={(a) => damage((u) => ({ ...u, attacker: a }))}
             onPilotDamage={(source, hurt) => onChange((u) => (hurt ? addPilotDamage(u, hurt.reason, hurt.amount, source) : removePilotDamage(u, source)))}
+            onThroughArmor={(source, location) => onChange((u) => (location ? addThroughArmorCrit(u, location, source) : removeCritsBySource(u, source)))}
           />
         )}
         <TargetsPanel
@@ -149,8 +164,27 @@ export const UnitView = ({ unit, onChange }: Props) => {
           onHatchetTableChange={(t) => set({ hatchetTable: t })}
         />
         {tracking && (
+          <CritPanel
+            attacker={unit.attacker}
+            weapons={weapons}
+            checks={unit.crits}
+            hitState={(check, index) => critHitState(unit, check, index)}
+            pending={pendingCritSteps(unit)}
+            actions={{
+              onRoll: (id, value) => onChange((u) => enterCritRoll(u, id, value)),
+              onDie: (id, index, attempt, die, value) => onChange((u) => enterCritDie(u, id, index, attempt, die, value)),
+              onPick: (id, index, item) => onChange((u) => pickCritItem(u, id, index, item)),
+              onApply: (id, index) => onChange((u) => applyCritHit(u, id, index)),
+              onUndo: (id, index) => onChange((u) => undoCritHit(u, id, index)),
+              onBlowOff: (id) => onChange((u) => applyBlownOff(u, id)),
+              onUndoBlowOff: (id) => onChange((u) => undoBlownOff(u, id)),
+            }}
+          />
+        )}
+        {tracking && (
           <PsrPanel
             checks={unitPsrs(unit)}
+            pending={pendingPsrSteps(unit.psrs, psrAttacker(unit))}
             attackPhase={unit.attackPhase}
             attacker={unit.attacker}
             actions={{
@@ -167,6 +201,7 @@ export const UnitView = ({ unit, onChange }: Props) => {
         {tracking && (
           <PilotPanel
             pilot={unit.pilot}
+            pending={pendingPilotSteps(unit.pilot)}
             actions={{
               onAdd: (reason, amount) => onChange((u) => addPilotDamage(u, reason, amount)),
               onRemove: (id) => onChange((u) => removePilotDamage(u, id)),

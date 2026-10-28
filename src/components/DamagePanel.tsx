@@ -14,6 +14,8 @@ interface Props {
   onChange: (attacker: Attacker) => void
   /** The MechWarrior takes damage from a hit (head hit, ammo explosion); null takes it back on Undo. */
   onPilotDamage: (source: string, damage: { reason: string; amount: number } | null) => void
+  /** A hit location roll of 2 checks the location for a critical hit; null takes it back on Undo. */
+  onThroughArmor: (source: string, location: Location | null) => void
 }
 
 /** Fields a hit changes, kept so the last hit can be undone. */
@@ -104,11 +106,12 @@ export const HitReport = ({ label, groups, explosion, attacker, onUndo }: HitRep
 }
 
 /** Armor and internal structure of the 'Mech, with damage applied hit by hit. */
-export const DamagePanel = ({ attacker, damagePhase, onChange, onPilotDamage }: Props) => {
+export const DamagePanel = ({ attacker, damagePhase, onChange, onPilotDamage, onThroughArmor }: Props) => {
   const locations = LOCATIONS.filter((l) => hasLocation(attacker, l))
   const [location, setLocation] = useState<Location>('CT')
   const [amount, setAmount] = useState(5)
   const [rear, setRear] = useState(false)
+  const [throughArmor, setThroughArmor] = useState(false)
   const [binId, setBinId] = useState('')
   const [lastHit, setLastHit] = useState<LastHit | null>(null)
 
@@ -125,6 +128,8 @@ export const DamagePanel = ({ attacker, damagePhase, onChange, onPilotDamage }: 
     // Ammo explosions injure the MechWarrior; so does any hit to the head (p. 44).
     if (explosion) onPilotDamage(id, { reason: 'Ammo explosion', amount: 2 })
     else if (result.steps.some((s) => s.location === 'HD')) onPilotDamage(id, { reason: 'Head hit', amount: 1 })
+    // A location roll of 2 checks the location the damage lands in, a destroyed side torso passing it to the center torso.
+    if (!explosion && throughArmor && result.steps.length) onThroughArmor(id, result.steps[0].location)
   }
   const hit = () => record(`${amount} damage to the ${LOCATION_NAMES[at].toLowerCase()}${rear ? ' (rear)' : ''}`, applyDamage(attacker, at, amount, { rear }))
   const explode = () => {
@@ -135,6 +140,7 @@ export const DamagePanel = ({ attacker, damagePhase, onChange, onPilotDamage }: 
     if (!lastHit) return
     onChange({ ...attacker, ...lastHit.before })
     onPilotDamage(lastHit.id, null)
+    onThroughArmor(lastHit.id, null)
     setLastHit(null)
   }
   const repair = () => {
@@ -213,6 +219,7 @@ export const DamagePanel = ({ attacker, damagePhase, onChange, onPilotDamage }: 
         </div>
         <div className="toggles">
           <Toggle label="From the rear" checked={rear} onChange={setRear} title="Torsos take the hit on their rear armor, also when it transfers inward" />
+          <Toggle label="Hit location roll of 2" checked={throughArmor} onChange={setThroughArmor} title="A through-armor critical hit: the location checks for critical hits even if no internal structure was damaged" />
           <button type="button" onClick={hit} title="Armor first, then internal structure. Damage to a destroyed location transfers inward.">
             Apply
           </button>

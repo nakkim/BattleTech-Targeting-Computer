@@ -3,25 +3,25 @@ import type { Arc, Location, MovementMode, WeaponSpec } from './types'
 
 /** Weapons and Equipment Table, rulebook p. 55. */
 export const WEAPONS: WeaponSpec[] = [
-  { key: 'LL', name: 'Large Laser', category: 'energy', heat: 8, damage: 8, minRange: 0, short: 5, medium: 10, long: 15 },
-  { key: 'ML', name: 'Medium Laser', category: 'energy', heat: 3, damage: 5, minRange: 0, short: 3, medium: 6, long: 9 },
-  { key: 'SL', name: 'Small Laser', category: 'energy', heat: 1, damage: 3, minRange: 0, short: 1, medium: 2, long: 3 },
-  { key: 'FL', name: 'Flamer', category: 'energy', heat: 3, damage: 2, minRange: 0, short: 1, medium: 2, long: 3 },
-  { key: 'PPC', name: 'PPC', category: 'energy', heat: 10, damage: 10, minRange: 3, short: 6, medium: 12, long: 18 },
-  { key: 'AC2', name: 'Autocannon/2', category: 'ballistic', heat: 1, damage: 2, minRange: 4, short: 8, medium: 16, long: 24, ammoPerTon: 45 },
-  { key: 'AC5', name: 'Autocannon/5', category: 'ballistic', heat: 1, damage: 5, minRange: 3, short: 6, medium: 12, long: 18, ammoPerTon: 20 },
-  { key: 'AC10', name: 'Autocannon/10', category: 'ballistic', heat: 3, damage: 10, minRange: 0, short: 5, medium: 10, long: 15, ammoPerTon: 10 },
-  { key: 'AC20', name: 'Autocannon/20', category: 'ballistic', heat: 7, damage: 20, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 5 },
+  { key: 'LL', name: 'Large Laser', category: 'energy', heat: 8, slots: 2, damage: 8, minRange: 0, short: 5, medium: 10, long: 15 },
+  { key: 'ML', name: 'Medium Laser', category: 'energy', heat: 3, slots: 1, damage: 5, minRange: 0, short: 3, medium: 6, long: 9 },
+  { key: 'SL', name: 'Small Laser', category: 'energy', heat: 1, slots: 1, damage: 3, minRange: 0, short: 1, medium: 2, long: 3 },
+  { key: 'FL', name: 'Flamer', category: 'energy', heat: 3, slots: 1, damage: 2, minRange: 0, short: 1, medium: 2, long: 3 },
+  { key: 'PPC', name: 'PPC', category: 'energy', heat: 10, slots: 3, damage: 10, minRange: 3, short: 6, medium: 12, long: 18 },
+  { key: 'AC2', name: 'Autocannon/2', category: 'ballistic', heat: 1, slots: 1, damage: 2, minRange: 4, short: 8, medium: 16, long: 24, ammoPerTon: 45 },
+  { key: 'AC5', name: 'Autocannon/5', category: 'ballistic', heat: 1, slots: 4, damage: 5, minRange: 3, short: 6, medium: 12, long: 18, ammoPerTon: 20 },
+  { key: 'AC10', name: 'Autocannon/10', category: 'ballistic', heat: 3, slots: 7, damage: 10, minRange: 0, short: 5, medium: 10, long: 15, ammoPerTon: 10 },
+  { key: 'AC20', name: 'Autocannon/20', category: 'ballistic', heat: 7, slots: 10, damage: 20, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 5 },
   // Not in the box set rulebook; stats from Total Warfare, needed for the HGN-732 Highlander.
-  { key: 'GAUSS', name: 'Gauss Rifle', category: 'ballistic', heat: 1, damage: 15, minRange: 2, short: 7, medium: 15, long: 22, ammoPerTon: 8 },
-  { key: 'MG', name: 'Machine Gun', category: 'ballistic', heat: 0, damage: 2, minRange: 0, short: 1, medium: 2, long: 3, ammoPerTon: 200 },
-  { key: 'LRM5', name: 'LRM 5', category: 'missile', heat: 2, damage: 1, missiles: 5, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 24 },
-  { key: 'LRM10', name: 'LRM 10', category: 'missile', heat: 4, damage: 1, missiles: 10, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 12 },
-  { key: 'LRM15', name: 'LRM 15', category: 'missile', heat: 5, damage: 1, missiles: 15, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 8 },
-  { key: 'LRM20', name: 'LRM 20', category: 'missile', heat: 6, damage: 1, missiles: 20, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 6 },
-  { key: 'SRM2', name: 'SRM 2', category: 'missile', heat: 2, damage: 2, missiles: 2, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 50 },
-  { key: 'SRM4', name: 'SRM 4', category: 'missile', heat: 3, damage: 2, missiles: 4, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 25 },
-  { key: 'SRM6', name: 'SRM 6', category: 'missile', heat: 4, damage: 2, missiles: 6, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 15 },
+  { key: 'GAUSS', name: 'Gauss Rifle', category: 'ballistic', heat: 1, slots: 7, damage: 15, minRange: 2, short: 7, medium: 15, long: 22, ammoPerTon: 8 },
+  { key: 'MG', name: 'Machine Gun', category: 'ballistic', heat: 0, slots: 1, damage: 2, minRange: 0, short: 1, medium: 2, long: 3, ammoPerTon: 200 },
+  { key: 'LRM5', name: 'LRM 5', category: 'missile', heat: 2, slots: 1, damage: 1, missiles: 5, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 24 },
+  { key: 'LRM10', name: 'LRM 10', category: 'missile', heat: 4, slots: 2, damage: 1, missiles: 10, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 12 },
+  { key: 'LRM15', name: 'LRM 15', category: 'missile', heat: 5, slots: 3, damage: 1, missiles: 15, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 8 },
+  { key: 'LRM20', name: 'LRM 20', category: 'missile', heat: 6, slots: 5, damage: 1, missiles: 20, minRange: 6, short: 7, medium: 14, long: 21, ammoPerTon: 6 },
+  { key: 'SRM2', name: 'SRM 2', category: 'missile', heat: 2, slots: 1, damage: 2, missiles: 2, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 50 },
+  { key: 'SRM4', name: 'SRM 4', category: 'missile', heat: 3, slots: 1, damage: 2, missiles: 4, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 25 },
+  { key: 'SRM6', name: 'SRM 6', category: 'missile', heat: 4, slots: 2, damage: 2, missiles: 6, minRange: 0, short: 3, medium: 6, long: 9, ammoPerTon: 15 },
 ]
 
 export const WEAPONS_BY_KEY: Record<string, WeaponSpec> = Object.fromEntries(WEAPONS.map((w) => [w.key, w]))
