@@ -1,6 +1,7 @@
 import { isExplosive, spendAmmo, usesAmmo } from '../rules/ammo'
 import { explodeAmmo } from '../rules/damage'
 import { projectHeat } from '../rules/heat'
+import { checkPilot, consciousnessTarget, newPilotTurn, pendingPilotSteps, type PilotTurn } from '../rules/pilot'
 import { ammoCheck, pendingHeatSteps, shutdownAfter, shutsDownStanding, type HeatPhase } from '../rules/heatPhase'
 import {
   applyFall,
@@ -13,6 +14,7 @@ import {
   PSR_CAUSES,
   psrModifiers,
   type Psr,
+  type PsrCheck,
   type PsrCause,
   type PsrPhase,
   type PsrQueue,
@@ -40,6 +42,8 @@ export interface UnitState {
   heatPhase: HeatPhase | null
   /** Piloting Skill Rolls of this turn, made with physical dice. */
   psrs: PsrQueue
+  /** The MechWarrior's damage this turn and its Consciousness Rolls. */
+  pilot: PilotTurn
   /** Phase that new damage and critical hits happen in, for the rolls they call for. */
   attackPhase: PsrPhase
   /** Damage taken this turn per phase, for the roll after 20 or more. */
@@ -70,6 +74,7 @@ export const newUnit = ({ attacker, weapons }: { attacker: Attacker; weapons: Mo
     hatchetTable: 'standard',
     heatPhase: null,
     psrs: noPsrs(),
+    pilot: newPilotTurn(attacker),
     attackPhase: 'weapon',
     damageTaken: {},
   }
@@ -85,6 +90,7 @@ export const normalizeLance = (lance: LanceState): LanceState => {
       attacker: createAttacker(u.attacker),
       heatPhase: u.heatPhase ?? null,
       psrs: u.psrs ?? noPsrs(),
+      pilot: u.pilot ?? newPilotTurn(createAttacker(u.attacker)),
       attackPhase: u.attackPhase ?? 'weapon',
       damageTaken: u.damageTaken ?? {},
     })),
@@ -138,27 +144,128 @@ const newPsr = (cause: PsrCause, phase: PsrPhase = PSR_CAUSES[cause].phase, sour
 })
 
 /**
+ * The 'Mech as its Piloting Skill Rolls see it: knocked out only by damage from
+ * before the falls, so a fall cannot make its own roll fail.
+ */
+export const psrAttacker = (unit: UnitState): Attacker => {
+  const { hits, unconscious } = checkPilot({ ...unit.pilot, damage: unit.pilot.damage.filter((d) => !d.source?.startsWith('fall')) })
+  return { ...unit.attacker, pilotHits: hits, unconscious }
+}
+
+/** Work out the turn's Piloting Skill Rolls. */
+export const unitPsrs = (unit: UnitState): PsrCheck[] => checkPsrs(unit.psrs, psrAttacker(unit))
+
+/**
  * Bring the 'Mech in line with its Piloting Skill Rolls: take back falling damage of
  * rolls that no longer fall, and set prone from the rolls.
  */
-const settlePsrs = (unit: UnitState): UnitState => {
+const settlePsrRolls = (unit: UnitState): UnitState => {
   const { psrs } = unit
   if (psrs.rolls.length === 0) return unit
   let attacker = unit.attacker
-  const checks = checkPsrs(psrs, attacker)
+  const checks = unitPsrs(unit)
   const rolls = psrs.rolls.map((psr, i) => {
     if (checks[i].outcome === 'falls') return psr
     if (psr.fall.applied) attacker = { ...attacker, ...psr.fall.applied.before }
     return { ...psr, pilotRoll: null, fall: noFall() }
   })
-  const queue = { ...psrs, rolls }
-  return { ...unit, psrs: queue, attacker: { ...attacker, prone: proneAfter(queue, checkPsrs(queue, attacker)) } }
+  const next = { ...unit, attacker, psrs: { ...psrs, rolls } }
+  return { ...next, attacker: { ...attacker, prone: proneAfter(next.psrs, unitPsrs(next)) } }
+}
+
+/** MechWarrior damage the Piloting Skill Rolls call for, by source: a failed roll after a fall, and head hits from falling damage. */
+const psrPilotDamage = (unit: UnitState): Map<string, { reason: string; amount: number }> => {
+  const damage = new Map<string, { reason: string; amount: number }>()
+  for (const check of unitPsrs(unit)) {
+    const { psr } = check
+    if (check.outcome === 'falls' && check.pilotHurt) damage.set(`fall:${psr.id}`, { reason: `Fall (${PSR_CAUSES[psr.cause].label.toLowerCase()})`, amount: 1 })
+    const headHits = psr.fall.applied?.hits.filter((h) => h.steps.some((s) => s.location === 'HD')).length ?? 0
+    if (headHits > 0) damage.set(`fallhead:${psr.id}`, { reason: 'Head hit from a fall', amount: headHits })
+  }
+  return damage
+}
+
+/** Bring the MechWarrior's damage from falls in line with the Piloting Skill Rolls. */
+const syncPsrPilotDamage = (unit: UnitState): UnitState => {
+  const wanted = psrPilotDamage(unit)
+  let next = unit
+  for (const d of unit.pilot.damage) {
+    if (!d.source?.startsWith('fall') || wanted.get(d.source)?.amount === d.amount) continue
+    next = withoutPilotDamage(next, d.source)
+  }
+  for (const [source, { reason, amount }] of wanted) {
+    if (!next.pilot.damage.some((d) => d.source === source)) next = withPilotDamage(next, reason, amount, source)
+  }
+  return next
+}
+
+/** Set the MechWarrior's damage and consciousness from the turn's Consciousness Rolls. */
+const settlePilot = (unit: UnitState): UnitState => {
+  const { hits, unconscious } = checkPilot(unit.pilot)
+  return { ...unit, attacker: { ...unit.attacker, pilotHits: hits, unconscious } }
+}
+
+/**
+ * Settle Piloting Skill Rolls and MechWarrior damage together: a fall can hurt the
+ * MechWarrior, and an unconscious MechWarrior fails every later roll.
+ */
+const settle = (unit: UnitState): UnitState => {
+  const key = (u: UnitState) => JSON.stringify([u.psrs, u.pilot, u.attacker.prone, u.attacker.unconscious, u.attacker.pilotHits])
+  let next = unit
+  for (let i = 0; i < 5; i++) {
+    const settled = settlePilot(syncPsrPilotDamage(settlePsrRolls(next)))
+    if (key(settled) === key(next)) return settled
+    next = settled
+  }
+  return next
+}
+
+const withPilotDamage = (unit: UnitState, reason: string, amount: number, source?: string): UnitState => ({
+  ...unit,
+  pilot: { ...unit.pilot, damage: [...unit.pilot.damage, { id: newId('w'), source, reason, amount, rolls: [] }] },
+})
+
+const withoutPilotDamage = (unit: UnitState, idOrSource: string): UnitState => ({
+  ...unit,
+  pilot: { ...unit.pilot, damage: unit.pilot.damage.filter((d) => d.id !== idOrSource && d.source !== idOrSource) },
+})
+
+/** The MechWarrior takes damage (wounds), each point calling for a Consciousness Roll. */
+export const addPilotDamage = (unit: UnitState, reason: string, amount: number, source?: string): UnitState => {
+  return settle(withPilotDamage(unit, reason, amount, source))
+}
+
+/** Take back MechWarrior damage, by its id or the source that added it. */
+export const removePilotDamage = (unit: UnitState, idOrSource: string): UnitState => settle(withoutPilotDamage(unit, idOrSource))
+
+/** Enter the 2D6 Consciousness Roll for one point of damage (null clears it). */
+export const enterConsciousnessRoll = (unit: UnitState, damageId: string, index: number, value: number | null): UnitState => {
+  const damage = unit.pilot.damage.map((d) => {
+    if (d.id !== damageId) return d
+    const rolls = [...d.rolls]
+    rolls[index] = value
+    return { ...d, rolls }
+  })
+  return settle({ ...unit, pilot: { ...unit.pilot, damage } })
+}
+
+/** Enter the End Phase roll to regain consciousness (null clears it). */
+export const enterWakeRoll = (unit: UnitState, value: number | null): UnitState => {
+  const { wake } = unit.pilot
+  if (!wake) return unit
+  return settle({ ...unit, pilot: { ...unit.pilot, wake: { ...wake, roll: value } } })
+}
+
+/** Heal the MechWarrior: no damage, conscious. */
+export const healPilot = (unit: UnitState): UnitState => {
+  const attacker = { ...unit.attacker, pilotHits: 0, unconscious: false }
+  return settle({ ...unit, attacker, pilot: newPilotTurn(attacker) })
 }
 
 /** Start the turn's Piloting Skill Rolls when the first comes up, remembering whether the 'Mech was prone. */
 const withPsr = (unit: UnitState, psr: Psr): UnitState => {
   const psrs = unit.psrs.rolls.length ? unit.psrs : { wasProne: unit.attacker.prone, rolls: [] }
-  return settlePsrs({ ...unit, psrs: { ...psrs, rolls: [...psrs.rolls, psr] } })
+  return settle({ ...unit, psrs: { ...psrs, rolls: [...psrs.rolls, psr] } })
 }
 
 /** Add or remove the Piloting Skill Roll for shutting down while standing, as the shutdown roll decides. */
@@ -168,6 +275,15 @@ const syncShutdownPsr = (unit: UnitState): UnitState => {
   if (needed && !existing) return withPsr(unit, newPsr('shutdown'))
   if (!needed && existing) return removePsr(unit, existing.id)
   return unit
+}
+
+/**
+ * End Phase roll to regain consciousness, for a MechWarrior out cold for the whole
+ * turn that ends (p. 44); null when none is due.
+ */
+const wakeRoll = ({ attacker, pilot }: UnitState): PilotTurn['wake'] => {
+  const target = consciousnessTarget(attacker.pilotHits)
+  return attacker.unconscious && pilot.wasUnconscious && target !== null ? { target, roll: null } : null
 }
 
 /**
@@ -198,6 +314,7 @@ export const advanceTurn = (unit: UnitState, tracking = true): UnitState => {
     attackerIsSpotting: false,
     heatPhase,
     psrs: noPsrs(),
+    pilot: newPilotTurn(attacker, tracking ? wakeRoll(unit) : null),
     attackPhase: 'weapon',
     damageTaken: {},
   }
@@ -223,8 +340,8 @@ export const removePsr = (unit: UnitState, id: string): UnitState => {
   const attacker = psr.fall.applied ? { ...unit.attacker, ...psr.fall.applied.before } : unit.attacker
   const rolls = unit.psrs.rolls.filter((p) => p.id !== id)
   // With no rolls left the 'Mech is back as it was.
-  if (rolls.length === 0) return { ...unit, attacker: { ...attacker, prone: unit.psrs.wasProne }, psrs: noPsrs() }
-  return settlePsrs({ ...unit, attacker, psrs: { ...unit.psrs, rolls } })
+  if (rolls.length === 0) return settle({ ...unit, attacker: { ...attacker, prone: unit.psrs.wasProne }, psrs: noPsrs() })
+  return settle({ ...unit, attacker, psrs: { ...unit.psrs, rolls } })
 }
 
 const updatePsr = (unit: UnitState, id: string, update: (psr: Psr) => Psr): UnitState => ({
@@ -239,9 +356,9 @@ const updatePsr = (unit: UnitState, id: string, update: (psr: Psr) => Psr): Unit
 export const enterPsrRoll = (unit: UnitState, id: string, roll: 'roll' | 'pilotRoll', value: number | null): UnitState => {
   const psr = unit.psrs.rolls.find((p) => p.id === id)
   if (!psr) return unit
-  if (roll === 'pilotRoll') return updatePsr(unit, id, (p) => ({ ...p, pilotRoll: value }))
+  if (roll === 'pilotRoll') return settle(updatePsr(unit, id, (p) => ({ ...p, pilotRoll: value })))
   const frozen = value === null ? null : psrModifiers(unit.psrs, psr, unit.attacker)
-  return settlePsrs(updatePsr(unit, id, (p) => ({ ...p, roll: value, frozen })))
+  return settle(updatePsr(unit, id, (p) => ({ ...p, roll: value, frozen })))
 }
 
 /** Enter the Facing After Fall roll (1D6) or the Hit Location roll (2D6) of one group of falling damage. */
@@ -263,14 +380,14 @@ export const applyFallDamage = (unit: UnitState, id: string): UnitState => {
   const rolls = fiveGroups(fallDamage(unit.attacker, levels)).map((_, i) => psr.fall.locationRolls[i] ?? null)
   if (rolls.some((r) => r === null)) return unit
   const { attacker, fall } = applyFall(unit.attacker, psr.fall.facingRoll, rolls as number[], { levels, rear })
-  return updatePsr({ ...unit, attacker }, id, (p) => ({ ...p, fall: { ...p.fall, applied: fall } }))
+  return settle(updatePsr({ ...unit, attacker }, id, (p) => ({ ...p, fall: { ...p.fall, applied: fall } })))
 }
 
 /** Undo falling damage, keeping the rolls so they can be corrected. */
 export const undoFallDamage = (unit: UnitState, id: string): UnitState => {
   const psr = unit.psrs.rolls.find((p) => p.id === id)
   if (!psr?.fall.applied) return unit
-  return updatePsr({ ...unit, attacker: { ...unit.attacker, ...psr.fall.applied.before } }, id, (p) => ({ ...p, fall: { ...p.fall, applied: null } }))
+  return settle(updatePsr({ ...unit, attacker: { ...unit.attacker, ...psr.fall.applied.before } }, id, (p) => ({ ...p, fall: { ...p.fall, applied: null } })))
 }
 
 const LEG_ROLLS: [Location, 'leftLeg' | 'rightLeg'][] = [
@@ -335,7 +452,7 @@ export const trackDamage = (before: UnitState, after: UnitState, phase: PsrPhase
 /** Heat Phase and Piloting Skill Roll steps still to do. Only tracked play enters rolls. */
 export const pendingSteps = (unit: UnitState, tracking: boolean): number => {
   if (!tracking) return 0
-  return (unit.heatPhase ? pendingHeatSteps(unit.heatPhase) : 0) + pendingPsrSteps(unit.psrs, unit.attacker)
+  return (unit.heatPhase ? pendingHeatSteps(unit.heatPhase) : 0) + pendingPsrSteps(unit.psrs, psrAttacker(unit)) + pendingPilotSteps(unit.pilot)
 }
 
 /** Explode an ammo bin after a failed heat roll, keeping what it changed so it can be undone. */
@@ -346,16 +463,17 @@ export const explodeHeatAmmo = (unit: UnitState, binId: string): UnitState => {
   const { armorDamage, structureDamage, destroyedLocations, ammoBins } = attacker
   const result = explodeAmmo(attacker, binId)
   const label = `${WEAPONS_BY_KEY[bin.weaponKey].name} ammo in the ${LOCATION_NAMES[bin.location].toLowerCase()} explodes`
-  return {
+  const exploded = {
     ...unit,
     attacker: result.attacker,
     heatPhase: { ...heatPhase, explosion: { label, steps: result.steps, lost: result.lost, before: { armorDamage, structureDamage, destroyedLocations, ammoBins } } },
   }
+  return addPilotDamage(exploded, 'Ammo explosion', 2, 'heat-explosion')
 }
 
 /** Undo the heat explosion: restore armor, internal structure, destroyed locations and ammo. */
 export const undoHeatExplosion = (unit: UnitState): UnitState => {
   const explosion = unit.heatPhase?.explosion
   if (!unit.heatPhase || !explosion) return unit
-  return { ...unit, attacker: { ...unit.attacker, ...explosion.before }, heatPhase: { ...unit.heatPhase, explosion: null } }
+  return removePilotDamage({ ...unit, attacker: { ...unit.attacker, ...explosion.before }, heatPhase: { ...unit.heatPhase, explosion: null } }, 'heat-explosion')
 }

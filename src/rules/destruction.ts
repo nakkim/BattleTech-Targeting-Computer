@@ -42,9 +42,9 @@ export const destroyedReason = (attacker: LocationState, location: Location): st
   return null
 }
 
-/** Weapons that are declared to fire and still have an intact location. A shut down 'Mech fires nothing. */
-export const declaredWeapons = (attacker: LocationState & Partial<Pick<Attacker, 'shutdown'>>, weapons: MountedWeapon[]): MountedWeapon[] => {
-  if (attacker.shutdown) return []
+/** Weapons that are declared to fire and still have an intact location. An immobile 'Mech fires nothing. */
+export const declaredWeapons = (attacker: LocationState & Partial<Pick<Attacker, 'shutdown' | 'unconscious' | 'pilotHits'>>, weapons: MountedWeapon[]): MountedWeapon[] => {
+  if (attacker.shutdown || attacker.unconscious || (attacker.pilotHits ?? 0) >= 6) return []
   return weapons.filter((w) => w.fire && !isLocationDestroyed(attacker, w.location))
 }
 

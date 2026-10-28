@@ -2,6 +2,7 @@ import { firingWeapons } from '../rules/ammo'
 import { isMechDestroyed } from '../rules/destruction'
 import { projectHeat } from '../rules/heat'
 import { rulesAttacker, useTracking } from '../state/mode'
+import { isPilotKilled } from '../rules/pilot'
 import { pendingSteps, type UnitState } from '../state/unit'
 
 interface Props {
@@ -31,6 +32,7 @@ export const LanceTabs = ({ units, activeId, onSelect, onAdd, onDuplicate, onRem
                 <span className="lance-tab-meta">
                   {destroyed && <span className="hot">DESTROYED</span>}
                   {!destroyed && u.attacker.shutdown && <span className="hot">SHUT DOWN</span>}
+                  {!destroyed && tracking && (isPilotKilled(u.attacker) ? <span className="hot">PILOT KILLED</span> : u.attacker.unconscious && <span className="hot">UNCONSCIOUS</span>)}
                   {rolls > 0 && (
                     <span className="hot" title="Heat Phase or Piloting Skill Rolls still to resolve">
                       ROLL {rolls}

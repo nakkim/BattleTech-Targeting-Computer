@@ -7,14 +7,20 @@ import { declaredWeapons } from '../rules/destruction'
 import { checkTargets, resolveWeaponAttack, type WeaponAttackResult } from '../rules/weaponAttack'
 import { rulesAttacker, useTracking } from '../state/mode'
 import {
+  addPilotDamage,
   addPsr,
   applyFallDamage,
+  enterConsciousnessRoll,
+  enterWakeRoll,
+  healPilot,
   enterFallRoll,
   enterHeatRoll,
   enterPsrRoll,
   explodeHeatAmmo,
+  removePilotDamage,
   removePsr,
   trackDamage,
+  unitPsrs,
   undoFallDamage,
   undoHeatExplosion,
   type UnitState,
@@ -25,6 +31,7 @@ import { HeatPanel } from './HeatPanel'
 import { HitLocationPanel } from './HitLocationPanel'
 import { MechDialog } from './MechDialog'
 import { PhysicalPanel } from './PhysicalPanel'
+import { PilotPanel } from './PilotPanel'
 import { PsrPanel } from './PsrPanel'
 import { PSR_PHASE_NAMES, type PsrPhase } from '../rules/psr'
 import { TargetDataPanel, TargetsPanel } from './TargetsPanel'
@@ -98,7 +105,14 @@ export const UnitView = ({ unit, onChange }: Props) => {
           />
         )}
         <AttackerPanel attacker={unit.attacker} onChange={(a) => damage((u) => ({ ...u, attacker: a }))} />
-        {tracking && <DamagePanel attacker={unit.attacker} damagePhase={PSR_PHASE_NAMES[unit.attackPhase]} onChange={(a) => damage((u) => ({ ...u, attacker: a }))} />}
+        {tracking && (
+          <DamagePanel
+            attacker={unit.attacker}
+            damagePhase={PSR_PHASE_NAMES[unit.attackPhase]}
+            onChange={(a) => damage((u) => ({ ...u, attacker: a }))}
+            onPilotDamage={(source, hurt) => onChange((u) => (hurt ? addPilotDamage(u, hurt.reason, hurt.amount, source) : removePilotDamage(u, source)))}
+          />
+        )}
         <TargetsPanel
           targets={targets}
           selectedId={selectedTarget.id}
@@ -136,7 +150,7 @@ export const UnitView = ({ unit, onChange }: Props) => {
         />
         {tracking && (
           <PsrPanel
-            psrs={unit.psrs}
+            checks={unitPsrs(unit)}
             attackPhase={unit.attackPhase}
             attacker={unit.attacker}
             actions={{
@@ -147,6 +161,18 @@ export const UnitView = ({ unit, onChange }: Props) => {
               onFallRoll: (id, roll, value) => onChange((u) => enterFallRoll(u, id, roll, value)),
               onApplyFall: (id) => onChange((u) => applyFallDamage(u, id)),
               onUndoFall: (id) => onChange((u) => undoFallDamage(u, id)),
+            }}
+          />
+        )}
+        {tracking && (
+          <PilotPanel
+            pilot={unit.pilot}
+            actions={{
+              onAdd: (reason, amount) => onChange((u) => addPilotDamage(u, reason, amount)),
+              onRemove: (id) => onChange((u) => removePilotDamage(u, id)),
+              onRoll: (damageId, index, value) => onChange((u) => enterConsciousnessRoll(u, damageId, index, value)),
+              onWake: (value) => onChange((u) => enterWakeRoll(u, value)),
+              onHeal: () => onChange(healPilot),
             }}
           />
         )}

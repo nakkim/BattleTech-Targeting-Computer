@@ -9,23 +9,29 @@ import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationCha
 import type { Attacker, Location, Target } from './types'
 import { buildMech, MECHS } from '../state/mechCatalog'
 import {
+  addPilotDamage,
   addPsr,
   advanceTurn,
   applyFallDamage,
+  enterConsciousnessRoll,
   enterFallRoll,
+  enterWakeRoll,
   enterHeatRoll,
   enterPsrRoll,
   explodeHeatAmmo,
   newUnit,
   pendingSteps,
+  removePilotDamage,
   removePsr,
   trackDamage,
   undoFallDamage,
   undoHeatExplosion,
   unitName,
+  unitPsrs,
   type UnitState,
 } from '../state/unit'
 import { powerCheck } from './heatPhase'
+import { checkPilot, consciousnessTarget } from './pilot'
 import { checkPsrs, fallDamage, fallHitLocation, fallSide, fiveGroups, psrDamageModifiers } from './psr'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
 
@@ -412,7 +418,8 @@ describe('Heat Phase rolls', () => {
     expect(unit.attacker.prone).toBe(true)
     // The MechWarrior is hurt without a roll, since the 'Mech is immobile; the falling damage is still to apply.
     expect(shutdownCheck(unit)?.pilotHurt).toBe(true)
-    expect(pendingSteps(unit, true)).toBe(1)
+    // The falling damage and the MechWarrior's Consciousness Roll.
+    expect(pendingSteps(unit, true)).toBe(2)
     unit = enterPsrRoll(unit, id, 'roll', 8)
     expect(unit.attacker.prone).toBe(false)
 
@@ -439,8 +446,8 @@ describe('Heat Phase rolls', () => {
     expect(unit.attacker.prone).toBe(false)
     const worse = advanceTurn(heatedUnit(30, { piloting: 6, leftLeg: hip, rightLeg: hip }))
     expect(worse.attacker.prone).toBe(true)
-    // No roll is due, only the falling damage.
-    expect(pendingSteps(worse, true)).toBe(1)
+    // No Piloting Skill Roll is due: only the falling damage and the MechWarrior's Consciousness Roll.
+    expect(pendingSteps(worse, true)).toBe(2)
   })
 
   it('explodes the most damaging bin on a failed ammo roll, and undoes it', () => {
@@ -451,7 +458,8 @@ describe('Heat Phase rolls', () => {
     expect(pendingSteps(unit, true)).toBe(2)
     unit = enterHeatRoll(unit, 'powerRoll', 6)
     unit = explodeHeatAmmo(unit, lrm.id)
-    expect(pendingSteps(unit, true)).toBe(0)
+    // Two Consciousness Rolls for the MechWarrior's 2 damage.
+    expect(pendingSteps(unit, true)).toBe(2)
     // 2 shots × 20 = 40 to the left torso's internal structure (18 at 85 tons), the rest to the center torso.
     expect(unit.attacker.structureDamage).toEqual({ LT: 18, CT: 22 })
     expect(unit.attacker.armorDamage).toEqual({})
@@ -646,5 +654,90 @@ describe('Piloting Skill Rolls from tracked damage', () => {
     let next = enterHeatRoll(enterHeatRoll(advanceTurn(unit), 'powerRoll', 6), 'ammoRoll', 2)
     next = trackDamage(next, explodeHeatAmmo(next, next.attacker.ammoBins[0].id), 'heat')
     expect(causes(next)).toEqual(['damage20@heat'])
+  })
+})
+
+describe('MechWarrior damage', () => {
+  const unitOf = (options: Parameters<typeof createAttacker>[0] = {}) => newUnit({ attacker: createAttacker({ tonnage: 85, piloting: 5, ...options }), weapons: [] })
+  const outcomes = (unit: UnitState) => checkPilot(unit.pilot).checks.map((c) => c.outcome)
+
+  it('uses the consciousness numbers of the record sheet', () => {
+    expect([1, 2, 3, 4, 5, 6].map(consciousnessTarget)).toEqual([3, 5, 7, 10, 11, null])
+  })
+
+  it('rolls for each point, stops rolling once unconscious, and dies at 6', () => {
+    let unit = addPilotDamage(unitOf(), 'Ammo explosion', 2)
+    expect(unit.attacker.pilotHits).toBe(2)
+    expect(pendingSteps(unit, true)).toBe(2)
+    const id = unit.pilot.damage[0].id
+    unit = enterConsciousnessRoll(unit, id, 0, 4)
+    unit = enterConsciousnessRoll(unit, id, 1, 4)
+    expect(outcomes(unit)).toEqual(['conscious', 'unconscious'])
+    expect(unit.attacker.unconscious).toBe(true)
+
+    unit = addPilotDamage(unit, 'Head hit', 1)
+    expect(outcomes(unit)).toEqual(['conscious', 'unconscious', 'skipped'])
+    expect(pendingSteps(unit, true)).toBe(0)
+    unit = addPilotDamage(unit, 'Other', 3)
+    expect(checkPilot(unit.pilot).killed).toBe(true)
+    expect(unit.attacker.pilotHits).toBe(6)
+  })
+
+  it('immobilizes the Mech while unconscious: no fire, every PSR fails', () => {
+    const { attacker, weapons } = buildMech(MECHS.find((m) => m.name === 'Highlander HGN-732')!)
+    const out = { ...attacker, unconscious: true }
+    expect(firingWeapons(out, weapons)).toEqual([])
+    expect(resolveWeaponAttack(weapons[0], { attacker: out, target: createTarget(), spotter: defaultSpotter(), attackerIsSpotting: false }).reasons).toContain('MechWarrior unconscious')
+    let unit = addPilotDamage(unitOf(), 'Head hit', 1)
+    unit = addPsr(enterConsciousnessRoll(unit, unit.pilot.damage[0].id, 0, 2), 'kicked')
+    expect(unitPsrs(unit)[0].automatic).toMatch(/unconscious/)
+  })
+
+  it('adds damage from a failed MechWarrior roll after a fall, and takes it back with the fall', () => {
+    let unit = addPsr(unitOf(), 'kicked')
+    const id = unit.psrs.rolls[0].id
+    unit = enterPsrRoll(enterPsrRoll(unit, id, 'roll', 3), id, 'pilotRoll', 2)
+    expect(unit.pilot.damage.map((d) => [d.source, d.amount])).toEqual([[`fall:${id}`, 1]])
+    expect(unit.attacker.pilotHits).toBe(1)
+    // Knocked out: the Consciousness Roll fails.
+    unit = enterConsciousnessRoll(unit, unit.pilot.damage[0].id, 0, 2)
+    expect(unit.attacker.unconscious).toBe(true)
+    unit = enterPsrRoll(unit, id, 'roll', 10)
+    expect(unit.pilot.damage).toEqual([])
+    expect(unit.attacker.pilotHits).toBe(0)
+    expect(unit.attacker.unconscious).toBe(false)
+  })
+
+  it('makes later Piloting Skill Rolls fail once the MechWarrior is knocked out', () => {
+    let unit = addPilotDamage(addPsr(unitOf(), 'kicked'), 'Head hit', 1)
+    unit = enterConsciousnessRoll(unit, unit.pilot.damage[0].id, 0, 2)
+    const [check] = unitPsrs(unit)
+    expect(check.outcome).toBe('falls')
+    // The fall hurts the immobile MechWarrior without a roll.
+    expect(unit.pilot.damage.map((d) => d.reason)).toEqual(['Head hit', 'Fall (was kicked)'])
+    expect(unit.attacker.prone).toBe(true)
+  })
+
+  it('injures the MechWarrior for 2 when heat explodes ammo', () => {
+    const unit = newUnit({ attacker: createAttacker({ heat: 19, heatSinks: 0, tonnage: 85, ammoBins: [{ ...newAmmoBin('LRM20', 'LT'), shots: 1 }] }), weapons: [] })
+    let next = enterHeatRoll(enterHeatRoll(advanceTurn(unit), 'powerRoll', 6), 'ammoRoll', 2)
+    next = explodeHeatAmmo(next, next.attacker.ammoBins[0].id)
+    expect(next.attacker.pilotHits).toBe(2)
+    expect(removePilotDamage(next, 'heat-explosion').attacker.pilotHits).toBe(0)
+  })
+
+  it('asks for a wake-up roll after a full turn unconscious', () => {
+    let unit = addPilotDamage(unitOf(), 'Head hit', 1)
+    unit = enterConsciousnessRoll(unit, unit.pilot.damage[0].id, 0, 2)
+    // The turn it was knocked out: no roll yet.
+    unit = advanceTurn(unit)
+    expect(unit.pilot.wake).toBeNull()
+    expect(unit.attacker.unconscious).toBe(true)
+    unit = advanceTurn(unit)
+    expect(unit.pilot.wake).toEqual({ target: 3, roll: null })
+    expect(pendingSteps(unit, true)).toBe(1)
+    unit = enterWakeRoll(unit, 3)
+    expect(unit.attacker.unconscious).toBe(false)
+    expect(unit.attacker.pilotHits).toBe(1)
   })
 })

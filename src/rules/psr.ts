@@ -1,5 +1,6 @@
 import { applyDamage, type DamageFields, type DamageStep } from './damage'
 import { isLocationDestroyed } from './destruction'
+import { isImmobile, isPilotKilled } from './pilot'
 import { HIT_LOCATION_TABLE, tableColumn } from './tables'
 import type { Arc, Attacker, LegState, Location } from './types'
 
@@ -260,13 +261,14 @@ export const checkPsrs = (queue: PsrQueue, attacker: Attacker): PsrCheck[] => {
     const target = modifiers.reduce((sum, m) => sum + m.value, 0)
     const levels = spec.levels ?? 0
     const pilotTarget = target + Math.max(0, levels - 1)
-    const immobile = attacker.shutdown
+    const immobile = isImmobile(attacker)
     const check: PsrCheck = { psr, modifiers, target, automatic: null, outcome: 'pending', skipped: null, pilotTarget, pilotAutomatic: null, pilotHurt: null }
     if (prone && psr.cause !== 'stand') return { ...check, outcome: 'skipped', skipped: 'The ’Mech is prone: it only rolls to stand.' }
     if (fallingPhases.has(psr.phase) && !spec.automatic) return { ...check, outcome: 'skipped', skipped: 'The ’Mech falls automatically in this phase anyway.' }
     if (psr.cause === 'stand' && attacker.gyroHits >= 2) return { ...check, outcome: 'skipped', skipped: 'With its gyro destroyed, the ’Mech cannot stand up.' }
     if (spec.automatic) check.automatic = spec.automatic
-    else if (immobile && psr.cause !== 'shutdown') check.automatic = 'A shut down ’Mech fails every Piloting Skill Roll.'
+    else if (attacker.unconscious || isPilotKilled(attacker)) check.automatic = 'A ’Mech with an unconscious MechWarrior fails every Piloting Skill Roll.'
+    else if (attacker.shutdown && psr.cause !== 'shutdown') check.automatic = 'A shut down ’Mech fails every Piloting Skill Roll.'
     else if (target > 12) check.automatic = `Target Number ${target} is above 12.`
     if (check.automatic) check.outcome = 'falls'
     else if (psr.roll !== null) check.outcome = psr.roll >= target ? 'stands' : 'falls'

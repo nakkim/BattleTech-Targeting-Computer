@@ -1,3 +1,4 @@
+import { isPilotKilled } from './pilot'
 import { destroyedReason, isLocationDestroyed, isMechDestroyed } from './destruction'
 import { chanceToHit } from './dice'
 import { fivePointGroups, type HitTable } from './tables'
@@ -146,6 +147,8 @@ export const resolvePhysicalAttack = (type: PhysicalAttackType, ctx: PhysicalAtt
 
   if (isMechDestroyed(attacker)) reasons.push('’Mech destroyed')
   if (attacker.shutdown) reasons.push('’Mech is shut down')
+  if (isPilotKilled(attacker)) reasons.push('MechWarrior killed')
+  else if (attacker.unconscious) reasons.push('MechWarrior unconscious')
   if (attacker.prone) reasons.push('Prone ’Mechs cannot make physical attacks')
   const armsLost = (['LA', 'RA'] as const).filter((loc) => isLocationDestroyed(attacker, loc))
   const legsLost = (['LL', 'RL'] as const).filter((loc) => isLocationDestroyed(attacker, loc))

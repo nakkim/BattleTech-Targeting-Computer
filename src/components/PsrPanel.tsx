@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { checkPsrs, PSR_CAUSES, PSR_PHASE_NAMES, type PsrCause, type PsrCheck, type PsrModifier, type PsrPhase, type PsrQueue } from '../rules/psr'
+import { PSR_CAUSES, PSR_PHASE_NAMES, type PsrCause, type PsrCheck, type PsrModifier, type PsrPhase } from '../rules/psr'
 import type { Attacker } from '../rules/types'
 import { Panel, Segmented } from './fields'
 import { FallDamage, RollInput, RollStep } from './Rolls'
@@ -17,8 +17,9 @@ export interface PsrActions {
 }
 
 interface Props {
-  psrs: PsrQueue
   attacker: Attacker
+  /** The rolls, worked out (see unitPsrs). */
+  checks: PsrCheck[]
   attackPhase: PsrPhase
   actions: PsrActions
 }
@@ -133,8 +134,7 @@ const PsrRoll = ({ check, attacker, actions }: { check: PsrCheck; attacker: Atta
 }
 
 /** Piloting Skill Rolls of the turn, made with physical dice: what to roll, the result, and the fall that follows. */
-export const PsrPanel = ({ psrs, attacker, attackPhase, actions }: Props) => {
-  const checks = checkPsrs(psrs, attacker)
+export const PsrPanel = ({ attacker, checks, attackPhase, actions }: Props) => {
   return (
     <Panel title="Piloting Skill Rolls" className="psr-panel">
       <Segmented

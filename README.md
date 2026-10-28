@@ -36,6 +36,11 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - A prone 'Mech only rolls to stand, a shut down 'Mech fails every roll, and a Target Number above 12, a missed death from above (a 2-level fall on the rear), a lost leg or a destroyed gyro fall automatically; the other rolls of that attack phase are then not needed. A 'Mech with a destroyed gyro cannot stand.
   - After a fall: the MechWarrior's roll to avoid 1 damage, then the 1D6 Facing After Fall roll and a 2D6 hit location roll for each 5-point group. **Apply falling damage** applies each group, with Undo. Correcting or removing the roll takes the fall back.
   - **Next turn** clears the rolls, and stays disabled until they are resolved.
+- **MechWarrior** (Track stats mode): a card with the record sheet's damage track and consciousness numbers (3, 5, 7, 10, 11, dead at 6).
+  - Head hits (Take damage and falls), ammo explosions (2) and failed or automatic MechWarrior rolls after a fall add damage automatically, and their Undo takes it back. **Add damage** covers the rest, such as heat with a damaged life support system.
+  - Each point of damage asks for a 2D6 Consciousness Roll; once the MechWarrior is unconscious, no more rolls that turn.
+  - An unconscious or dead MechWarrior makes the 'Mech immobile: no weapon or physical attacks, and every Piloting Skill Roll fails. A fall cannot make its own roll fail.
+  - After a full turn unconscious, the turn after shows the End Phase roll to wake up. Lance tabs show **UNCONSCIOUS** or **PILOT KILLED**, and **Heal** clears the damage.
 - **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Plain 2D6 only works out hit or miss: ammo never runs out, and the armor, ammunition and ammo explosion parts are hidden. Tracked values are kept for switching back.
 - **Theme**: a header switch picks light or dark. The first visit follows the system setting.
 - Cards can be hidden, and the app saves its state in localStorage.

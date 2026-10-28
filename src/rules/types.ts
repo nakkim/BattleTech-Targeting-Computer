@@ -62,6 +62,10 @@ export interface Attacker {
   heat: number
   /** Power plant shut down by heat (p. 38): the 'Mech cannot move or attack. */
   shutdown: boolean
+  /** Damage (wounds) the MechWarrior has taken; the 6th kills (p. 44). */
+  pilotHits: number
+  /** The MechWarrior is unconscious: the 'Mech cannot move or attack. */
+  unconscious: boolean
   sensorHits: number
   /** 0 = dry, 1 = Depth 1, 2 = Depth 2 or deeper. */
   waterDepth: number

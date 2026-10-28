@@ -4,6 +4,7 @@ import { applyDamage, armorLeft, damageTotals, explodeAmmo, REAR_FACING, structu
 import { destroyedReason, hasLocation, isMechDestroyed } from '../rules/destruction'
 import { LOCATION_NAMES, LOCATIONS, WEAPONS_BY_KEY } from '../rules/tables'
 import type { ArmorFacing, Attacker, Location } from '../rules/types'
+import { newId } from '../state/defaults'
 import { CollapsiblePanel, NumberField, Toggle } from './fields'
 
 interface Props {
@@ -11,12 +12,15 @@ interface Props {
   /** Phase new damage counts toward for Piloting Skill Rolls, e.g. "Weapon Attack Phase". */
   damagePhase: string
   onChange: (attacker: Attacker) => void
+  /** The MechWarrior takes damage from a hit (head hit, ammo explosion); null takes it back on Undo. */
+  onPilotDamage: (source: string, damage: { reason: string; amount: number } | null) => void
 }
 
 /** Fields a hit changes, kept so the last hit can be undone. */
 type DamageFields = Pick<Attacker, 'armorDamage' | 'structureDamage' | 'destroyedLocations' | 'ammoBins'>
 
 interface LastHit {
+  id: string
   /** E.g. "12 to the left torso (rear)". */
   label: string
   result: DamageResult<Attacker>
@@ -100,7 +104,7 @@ export const HitReport = ({ label, groups, explosion, attacker, onUndo }: HitRep
 }
 
 /** Armor and internal structure of the 'Mech, with damage applied hit by hit. */
-export const DamagePanel = ({ attacker, damagePhase, onChange }: Props) => {
+export const DamagePanel = ({ attacker, damagePhase, onChange, onPilotDamage }: Props) => {
   const locations = LOCATIONS.filter((l) => hasLocation(attacker, l))
   const [location, setLocation] = useState<Location>('CT')
   const [amount, setAmount] = useState(5)
@@ -115,8 +119,12 @@ export const DamagePanel = ({ attacker, damagePhase, onChange }: Props) => {
   const destroyed = isMechDestroyed(attacker)
 
   const record = (label: string, result: DamageResult<Attacker>, explosion = false) => {
-    setLastHit({ label, result, before: pick(attacker), explosion })
+    const id = newId('h')
+    setLastHit({ id, label, result, before: pick(attacker), explosion })
     onChange(result.attacker)
+    // Ammo explosions injure the MechWarrior; so does any hit to the head (p. 44).
+    if (explosion) onPilotDamage(id, { reason: 'Ammo explosion', amount: 2 })
+    else if (result.steps.some((s) => s.location === 'HD')) onPilotDamage(id, { reason: 'Head hit', amount: 1 })
   }
   const hit = () => record(`${amount} damage to the ${LOCATION_NAMES[at].toLowerCase()}${rear ? ' (rear)' : ''}`, applyDamage(attacker, at, amount, { rear }))
   const explode = () => {
@@ -126,6 +134,7 @@ export const DamagePanel = ({ attacker, damagePhase, onChange }: Props) => {
   const undo = () => {
     if (!lastHit) return
     onChange({ ...attacker, ...lastHit.before })
+    onPilotDamage(lastHit.id, null)
     setLastHit(null)
   }
   const repair = () => {

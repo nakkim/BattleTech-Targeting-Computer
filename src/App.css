@@ -1926,6 +1926,45 @@ table.cluster tbody th {
   padding: 4px 8px;
 }
 
+.pilot-track {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-family: var(--mono);
+  margin-bottom: 8px;
+}
+
+.pilot-track th {
+  width: 9.5rem;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-dim);
+  padding: 3px 6px 3px 0;
+  white-space: nowrap;
+}
+
+.pilot-track td {
+  text-align: center;
+  border: 1px solid var(--border);
+  padding: 3px 0;
+}
+
+.pilot-track td.pilot-hit {
+  background: var(--red-dim);
+  color: var(--red);
+  font-weight: 700;
+}
+
+.pilot-status {
+  margin: 0 0 12px;
+  padding: 4px 8px;
+}
+
+.pilot-panel > * > .dice-roll {
+  margin-bottom: 12px;
+}
+
 .psr-list {
   display: flex;
   flex-direction: column;
