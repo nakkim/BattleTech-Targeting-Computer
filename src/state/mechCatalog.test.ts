@@ -11,7 +11,7 @@ describe('mech catalog', () => {
   it('loads every model once', () => {
     expect(MECHS.length).toBeGreaterThanOrEqual(11)
     expect(new Set(MECHS.map((m) => m.name)).size).toBe(MECHS.length)
-    expect(defaultMech().name).toBe('Locust LCT-1E')
+    expect(defaultMech().name).toBe('Griffin GRF-1N')
   })
 
   describe.each(MECHS.map((m) => [m.name, m] as const))('%s', (_, mech) => {
