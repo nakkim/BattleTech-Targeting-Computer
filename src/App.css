@@ -2338,3 +2338,202 @@ body::after {
   align-items: center;
   gap: 8px;
 }
+
+/* Plain 2D6 mode */
+.quick {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quick-name {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.quick-chips {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px 0;
+  background: var(--bg);
+}
+
+.quick-chip {
+  min-height: 64px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  min-width: 0;
+}
+
+.quick-chip:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.quick-chip.active,
+.quick-chip.active:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.quick-chip-letter {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
+}
+
+.quick-chip-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.quick-chip-detail {
+  max-width: 100%;
+  font-size: 0.68rem;
+  font-weight: 400;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quick-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.quick-panel .segmented {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+}
+
+.quick-panel .segmented button {
+  min-height: 40px;
+}
+
+.quick-weapons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quick-weapon {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 8px 6px 12px;
+}
+
+.quick-weapon.firing {
+  border-color: var(--amber);
+}
+
+.quick-weapon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quick-weapon-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-weight: 400;
+}
+
+.quick-weapon-main:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+.quick-weapon-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.quick-fire {
+  min-width: 68px;
+  min-height: 44px;
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.quick-fire:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.quick-fire.active,
+.quick-fire.active:hover {
+  border-color: var(--amber);
+  background: var(--amber);
+  color: var(--primary-text);
+}
+
+.quick-reason {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--red);
+}
+
+.quick-breakdown {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.quick-heat {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.quick-ok {
+  color: var(--accent);
+}

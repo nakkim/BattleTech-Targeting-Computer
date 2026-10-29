@@ -5,6 +5,7 @@ import { TransferDialog } from './components/TransferDialog'
 import { StatusLine } from './components/StatusLine'
 import { Typewriter } from './components/Typewriter'
 import { LanceTabs } from './components/LanceTabs'
+import { QuickView } from './components/QuickView'
 import { UnitView } from './components/UnitView'
 import { newId } from './state/defaults'
 import { buildMech, defaultMech, MECHS, OTHER_MECH } from './state/mechCatalog'
@@ -150,7 +151,10 @@ const App = () => {
         />
       )}
 
-      <UnitView key={active.id} unit={active} onChange={updateActive} />
+        {mode === 'tracking'
+          ? <UnitView key={active.id} unit={active} onChange={updateActive} />
+          : <QuickView key={active.id} unit={active} onChange={updateActive} />
+        }
 
       <footer className="app-footer">
         <StatusLine lance={lance} />

@@ -5,7 +5,7 @@ import { applyDamage, armorLeft, damageTotals, explodeAmmo, maxArmorFacings, str
 import { chanceToHit } from './dice'
 import { projectHeat } from './heat'
 import { resolvePhysicalAttack } from './physicalAttack'
-import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationChances, targetMovementModifier, WEAPONS_BY_KEY } from './tables'
+import { averageClusterHits, CLUSTER_HITS_TABLE, fivePointGroups, hitLocationChances, TARGET_MOVEMENT_BANDS, targetMovementModifier, WEAPONS_BY_KEY } from './tables'
 import type { Attacker, Location, Target } from './types'
 import { buildMech, MECHS } from '../state/mechCatalog'
 import {
@@ -69,6 +69,10 @@ describe('dice', () => {
 describe('tables', () => {
   it('target movement modifier brackets', () => {
     expect([0, 2, 3, 4, 5, 6, 7, 9, 10, 17, 18, 24, 25].map(targetMovementModifier)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6])
+  })
+  it('target movement bands start where each modifier starts', () => {
+    expect(TARGET_MOVEMENT_BANDS.map((b) => targetMovementModifier(b.from))).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(TARGET_MOVEMENT_BANDS.slice(1).map((b) => targetMovementModifier(b.from - 1))).toEqual([0, 1, 2, 3, 4, 5])
   })
   it('cluster table example: LRM 20 roll 8 hits 12', () => {
     expect(CLUSTER_HITS_TABLE[20][8 - 2]).toBe(12)

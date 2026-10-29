@@ -65,6 +65,17 @@ export const MOVEMENT_NAMES: Record<MovementMode, string> = {
   jumped: 'Jumped',
 }
 
+/** Rows of the target movement table: the first hex count of each, and its label. */
+export const TARGET_MOVEMENT_BANDS: { from: number; label: string }[] = [
+  { from: 0, label: '0–2' },
+  { from: 3, label: '3–4' },
+  { from: 5, label: '5–6' },
+  { from: 7, label: '7–9' },
+  { from: 10, label: '10–17' },
+  { from: 18, label: '18–24' },
+  { from: 25, label: '25+' },
+]
+
 /** Target movement modifier (TMM) by hexes moved, Attack Modifiers Table p. 19. */
 export const targetMovementModifier = (hexes: number): number => {
   if (hexes <= 2) return 0

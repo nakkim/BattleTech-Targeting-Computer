@@ -28,7 +28,6 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - A standing 'Mech that shuts down gets a Piloting Skill Roll at +3 on the Piloting Skill Rolls card.
   - **Ammo explosion** at 19 heat or more. On a failure it explodes the bin with the most damage per shot, or the one you pick between equal ones, with Undo.
   - Lance tabs show **ROLL n** while results are missing, and **SHUT DOWN** for a shut down 'Mech. The 'Mech card also has a **Shut down** switch for corrections and voluntary shutdown.
-  - In Plain 2D6 mode the Heat card only lists the rolls the Heat Phase calls for; you resolve them on the record sheet.
 - **Piloting Skill Rolls** (Track stats mode): a card lists the turn's Piloting Skill Rolls, made with physical dice.
   - **Added automatically** from tracked damage: 20+ damage in a phase, each damaged leg or foot actuator and hip, a lost leg, and gyro hits. A switch on the card sets whether new damage happens in the Weapon or Physical Attack Phase; heat explosions count toward the Heat Phase. Undoing or repairing the damage, or unticking the hit, removes the roll.
   - **Add roll** adds the other events (kicked, pushed, charged, missed kick or death from above, standing up, water, rubble and more) with their phase.
@@ -49,7 +48,11 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - Damaged life support hurts the MechWarrior in the Heat Phase: 1 damage at 15–25 heat, 2 at 26+.
 - **Collapsible cards**: every card folds up, and the Critical damage and Cluster Hits Table sections open and close; the app remembers each one. A folded card shows a summary, colored amber for rolls left to resolve, red for a 'Mech or MechWarrior out of action and green once the turn's rolls are resolved.
 - **Transfer**: the header's **Transfer** button moves the lance to another device. **Copy link** gives a link that opens the app with the lance; **Copy code** gives the same lance as a compressed code (`btc1:…`) to paste into the Transfer dialog there. Either way the other device shows what it holds and offers **Replace lance** or **Add to lance**. The theme, mode and folded cards stay per device.
-- **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Plain 2D6 only works out hit or miss: ammo never runs out, and the armor, ammunition and ammo explosion parts are hidden. Tracked values are kept for switching back.
+- **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Tracked values are kept for switching back.
+- **Plain 2D6** is a single, phone-friendly screen that only works out hit or miss. Ammo never runs out, and nothing is tracked but heat.
+  - Five **G A T O R** chips across the top show the current modifiers. Tapping one opens its buttons: gunnery skill; attacker movement and prone; the hexes the target moved, jumped, prone and immobile; woods, partial cover, heat and secondary target; and the range in hexes.
+  - Every weapon of the 'Mech is listed with its Target Number against the selected target, worked out from the range for its own brackets and minimum range. Tap a weapon for its modifiers. Every weapon starts the turn **Firing**, its heat counted; tap it to **Hold** fire.
+  - The heat line shows the heat the 'Mech carries into the next turn and its effects. **Edit 'Mech** changes the weapons; the lance tabs work as in Track stats.
 - **Theme**: a header switch picks light or dark. The first visit follows the system setting.
 - Cards can be hidden, and the app saves its state in localStorage.
 
