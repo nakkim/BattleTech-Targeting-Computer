@@ -10,7 +10,7 @@ const files = import.meta.glob<MechDefinition>(['../mechs/*.ts', '!../mechs/defi
 export const MECHS: MechDefinition[] = Object.values(files).sort((a, b) => a.tonnage - b.tonnage || a.name.localeCompare(b.name))
 
 /** The 'Mech a new lance starts with and the Add 'Mech dialog suggests. */
-export const DEFAULT_MECH_NAME = 'Locust LCT-1E'
+export const DEFAULT_MECH_NAME = 'Griffin GRF-1N'
 
 export const defaultMech = (): MechDefinition => MECHS.find((m) => m.name === DEFAULT_MECH_NAME) ?? MECHS[0]
 
