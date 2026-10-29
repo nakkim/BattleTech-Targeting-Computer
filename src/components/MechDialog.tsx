@@ -123,7 +123,7 @@ const AmmoBinEditor = ({ bins, types, locations, onChange }: { bins: AmmoBin[]; 
             ))}
           </select>
           <button type="button" onClick={() => onChange([...bins, newAmmoBin(addKey, addAt)])} title="Add one full ton of ammunition">
-            + Add ton
+            + Add ammo bin
           </button>
         </div>
       )}
