@@ -1,0 +1,4 @@
+{
+  "*.{ts,tsx}": ["oxlint --fix"],
+  "*.{ts,tsx,css,json,md,html}": ["prettier --write --ignore-unknown"]
+}
