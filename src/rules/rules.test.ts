@@ -28,7 +28,9 @@ import {
   enterHeatRoll,
   enterPsrRoll,
   explodeHeatAmmo,
+  initialLance,
   newUnit,
+  normalizeLance,
   pendingSteps,
   removePilotDamage,
   removePsr,
@@ -42,6 +44,7 @@ import {
 import { powerCheck } from './heatPhase'
 import { critCount, critLocation } from './crits'
 import { isMechDestroyed } from './destruction'
+import { addToLance, codeFromLink, decodeLance, encodeLance, lanceLink } from '../state/transfer'
 import { checkPilot, consciousnessTarget } from './pilot'
 import { checkPsrs, fallDamage, fallHitLocation, fallSide, fiveGroups, psrDamageModifiers } from './psr'
 import { minimumRangeModifier, resolveWeaponAttack } from './weaponAttack'
@@ -884,5 +887,40 @@ describe('Critical hits', () => {
     const unit = newUnit({ attacker: createAttacker({ heat: 26, heatSinks: 0, lifeSupportHit: true }), weapons: [] })
     expect(advanceTurn(unit).attacker.pilotHits).toBe(2)
     expect(advanceTurn({ ...unit, attacker: { ...unit.attacker, heat: 15 } }).attacker.pilotHits).toBe(1)
+  })
+})
+
+describe('Transferring a lance', () => {
+  it('round-trips the whole lance through a code', async () => {
+    const lance = initialLance()
+    const unit = addPilotDamage(trackDamage(lance.units[0], { ...lance.units[0], attacker: applyDamage(lance.units[0].attacker, 'CT', 12).attacker }), 'Head hit', 1)
+    const state = { ...lance, units: [unit], turn: 4 }
+    const code = await encodeLance(state)
+    expect(code.startsWith('btc1:')).toBe(true)
+    expect(code).toMatch(/^btc1:[A-Za-z0-9_-]+$/)
+    expect(await decodeLance(`  ${code}\n`)).toEqual(normalizeLance(state))
+  })
+
+  it('carries the code in a link, and reads the link back', async () => {
+    const lance = initialLance()
+    const code = await encodeLance(lance)
+    const link = lanceLink(code, 'https://example.org/BattleTech-Targeting-Computer/#old')
+    expect(link).toMatch(/^https:\/\/example\.org\/BattleTech-Targeting-Computer\/#lance=[A-Za-z0-9_-]+$/)
+    expect(codeFromLink(link)).toBe(code)
+    expect(codeFromLink('https://example.org/')).toBeNull()
+    expect(await decodeLance(link)).toEqual(normalizeLance(lance))
+  })
+
+  it('rejects text that is not a lance code', async () => {
+    await expect(decodeLance('hello')).rejects.toThrow()
+    await expect(decodeLance('btc1:not-compressed')).rejects.toThrow()
+  })
+
+  it('adds shared Mechs with new ids', () => {
+    const lance = initialLance()
+    const added = addToLance(lance, lance)
+    expect(added.units.length).toBe(2)
+    expect(new Set(added.units.map((u) => u.id)).size).toBe(2)
+    expect(added.activeUnitId).toBe(lance.activeUnitId)
   })
 })

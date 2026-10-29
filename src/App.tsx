@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Switch } from './components/fields'
 import { MechDialog } from './components/MechDialog'
+import { TransferDialog } from './components/TransferDialog'
 import { StatusLine } from './components/StatusLine'
 import { Typewriter } from './components/Typewriter'
 import { LanceTabs } from './components/LanceTabs'
@@ -9,6 +10,7 @@ import { newId } from './state/defaults'
 import { buildMech, defaultMech, MECHS, OTHER_MECH } from './state/mechCatalog'
 import { advanceTurn, initialLance, newUnit, normalizeLance, pendingSteps, unitName, type LanceState, type UnitState } from './state/unit'
 import { ModeContext, type AppMode } from './state/mode'
+import { codeFromLink } from './state/transfer'
 import { pendingHeatSteps } from './rules/heatPhase'
 import { usePersistentState } from './state/usePersistentState'
 import type { Attacker, MountedWeapon } from './rules/types'
@@ -42,6 +44,12 @@ const App = () => {
     document.documentElement.dataset.theme = theme
   }, [theme])
   const [adding, setAdding] = useState(false)
+  // Open Transfer dialog, with the code or link to load ('' for none); null when closed.
+  const [transfer, setTransfer] = useState<string | null>(() => codeFromLink(location.hash))
+  // Opened with a lance link: offer its lance, and take it out of the address bar so a reload does not ask again.
+  useEffect(() => {
+    if (codeFromLink(location.hash)) history.replaceState(null, '', location.pathname + location.search)
+  }, [])
   const numbered = ({ attacker, weapons }: ReturnType<typeof buildMech>) => ({
     attacker: { ...attacker, name: unitName(attacker.name, lance.units.map((u) => u.attacker.name)) },
     weapons,
@@ -108,11 +116,16 @@ const App = () => {
               Turn {lance.turn}
             </span>
           </div>
+          <button type="button" className="ghost" onClick={() => setTransfer('')} title="Move the lance to another device: copy it as a link or code, or load one">
+            Transfer
+          </button>
           <button type="button" className="ghost" onClick={reset}>
             Reset
           </button>
         </div>
       </header>
+
+      {transfer !== null && <TransferDialog lance={lance} incoming={transfer} onLoad={setLance} onClose={() => setTransfer(null)} />}
 
       <LanceTabs
         units={lance.units}

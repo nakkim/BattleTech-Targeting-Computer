@@ -48,6 +48,7 @@ A React + TypeScript + Vite tool that calculates attack phase values for *Battle
   - Without a known table (a custom 'Mech), you roll on your record sheet and pick what the slot holds.
   - Damaged life support hurts the MechWarrior in the Heat Phase: 1 damage at 15–25 heat, 2 at 26+.
 - **Collapsible cards**: every card folds up, and the Critical damage and Cluster Hits Table sections open and close; the app remembers each one. A folded card shows a summary, colored amber for rolls left to resolve, red for a 'Mech or MechWarrior out of action and green once the turn's rolls are resolved.
+- **Transfer**: the header's **Transfer** button moves the lance to another device. **Copy link** gives a link that opens the app with the lance; **Copy code** gives the same lance as a compressed code (`btc1:…`) to paste into the Transfer dialog there. Either way the other device shows what it holds and offers **Replace lance** or **Add to lance**. The theme, mode and folded cards stay per device.
 - **Modes**: the header switch picks between **Track stats** and **Plain 2D6**. Plain 2D6 only works out hit or miss: ammo never runs out, and the armor, ammunition and ammo explosion parts are hidden. Tracked values are kept for switching back.
 - **Theme**: a header switch picks light or dark. The first visit follows the system setting.
 - Cards can be hidden, and the app saves its state in localStorage.
